@@ -1,0 +1,9 @@
+﻿modelo_final.pkl
+df1_silver.parquet
+df2_gold.parquet
+df3_ml_ready.parquet
+.env
+venv/
+__pycache__/
+*.pyc
+pipeline.log

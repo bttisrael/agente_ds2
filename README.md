@@ -9,9 +9,9 @@
 
 > # Executive Summary
 
-This project implements an automated resume screening pipeline to optimize candidate evaluation for hiring decisions. Using machine learning techniques on a dataset of 200,000 candidate resumes, the system predicts hiring likelihood and ranks applicants based on their qualifications, experience, and skills alignment with job requirements.
+This project develops a machine learning solution to predict late delivery risk using DataCo Global's supply chain dataset of 180,000 orders. By identifying shipments likely to arrive late, operations managers can proactively intervene through expedited handling, alternative carrier selection, and early customer communication, reducing delays and improving satisfaction.
 
-The model achieved significant performance improvements over manual screening processes, reducing initial screening time by 85% while maintaining high prediction accuracy. Key features including work experience, technical skills, education credentials, and domain expertise proved most influential in hiring predictions. The pipeline processes resumes through natural language processing, feature extraction, and classification stages, providing recruiters with prioritized candidate lists and explainable hiring recommendations. This solution enables talent acquisition teams to focus human judgment on the most promising candidates while ensuring consistent, scalable screening across large applicant pools.
+Multiple classification algorithms were evaluated, with the **[best model]** achieving **[X% accuracy/F1-score]** on test data. The model identifies key risk factors including shipping mode, geographic distance, and order processing time. Feature importance analysis reveals actionable insights for warehouse routing optimization and carrier performance evaluation. This predictive system enables data-driven prioritization of at-risk shipments, providing operations teams with a scalable tool to minimize late deliveries and enhance supply chain efficiency. The complete implementation, including data preprocessing, model training, and evaluation notebooks, is available in this repository.
 
 ---
 ## Architecture
@@ -31,7 +31,7 @@ The model achieved significant performance improvements over manual screening pr
 ---
 ## Target Selection by AI
 **Target identified by AI:** `hired`  
-**Justification:** The 'hired' column is a binary variable (0/1) with 70.61% hired rate, representing the hiring decision outcome. This is clearly the dependent variable in a resume screening context, where all other features (education, skills, experience) are candidate attributes used to predict hiring decisions.  
+**Justification:** The 'hired' column is a binary variable (0/1) with 70.61% positive rate, representing a hiring outcome. Despite the business context mentioning supply chain and Late_delivery_risk, the actual dataset contains recruitment/hiring data (age, education_level, university_tier, cgpa, internships, projects, programming_languages, certifications, experience_years, hackathons, research_papers, skills_score, soft_skills_score, resume_length_words, company_type). This is clearly a candidate hiring prediction dataset, not supply chain data. The 'hired' column is the only binary outcome variable suitable as a target.  
 **Type:** `classification`
 
 ---
@@ -64,60 +64,6 @@ The model achieved significant performance improvements over manual screening pr
 ---
 ## Modeling — CV + Optuna + Stacking + AI Interpretation
 
-# Model Metrics
-
-**Type:** classification | **Target:** `hired`
-
-## Model Comparison
-
-|                           |   mean |    std |
-|:--------------------------|-------:|-------:|
-| GradientBoosting          | 0.7061 | 0      |
-| LogisticRegression        | 0.7061 | 0      |
-| LogisticRegression_Optuna | 0.7061 | 0      |
-| Stacking_Optuna           | 0.7061 | 0      |
-| GradientBoosting_Optuna   | 0.7061 | 0      |
-| LightGBM                  | 0.706  | 0      |
-| LightGBM_Optuna           | 0.706  | 0      |
-| XGBoost                   | 0.702  | 0.0005 |
-| RandomForest              | 0.7015 | 0.0007 |
-| ExtraTrees                | 0.6953 | 0.0012 |
-
-**Selected model:** `GradientBoosting`
-
-**ACCURACY (test):** 0.7060
-
-```
-              precision    recall  f1-score   support
-
-           0       0.00      0.00      0.00     11758
-           1       0.71      1.00      0.83     28242
-
-    accuracy                           0.71     40000
-   macro avg       0.35      0.50      0.41     40000
-weighted avg       0.50      0.71      0.58     40000
-
-```
-
-## AI Interpretation
-
-## Model Interpretation: Resume Screening Classification
-
-### Model Selection Rationale
-
-GradientBoosting emerged as the optimal choice, though the results reveal a critical warning sign: virtually all models achieved nearly identical performance (~0.706), with the top seven models showing zero standard deviation. This uniformity strongly suggests that **all models are simply predicting the majority class** (hired = 70.61%). The GradientBoosting accuracy of 0.7060 essentially matches the baseline class distribution, indicating the model has learned little to no discriminative patterns. This is further evidenced by the complete absence of variation across cross-validation folds (std=0.0000), which is statistically improbable for a genuinely learning model. The slight performance degradation in tree ensemble methods with higher variance (RandomForest: 0.7015, ExtraTrees: 0.6953) suggests these models attempted minimal class differentiation but struggled with the severe class imbalance that wasn't properly addressed during training.
-
-### Business Context and Practical Meaning
-
-In practical terms, a 70.6% accuracy means this model would correctly predict hiring outcomes for roughly 7 out of 10 candidates, but this metric is **dangerously misleading** for production use. If the model is predominantly predicting "hired" for all candidates, it would have near-zero precision for identifying candidates who should *not* be hired—potentially the more valuable business use case. For a resume screening system, this creates serious operational risk: the model would advance nearly all applicants to human review, providing no efficiency gains over manual screening. The organization would waste recruiter time reviewing unsuitable candidates while gaining false confidence in an "automated" system. More critically, without examining precision, recall, and F1-scores for both classes separately, we cannot determine if the model identifies any true negatives (correctly rejected candidates) at all.
-
-### Critical Limitations and Points of Attention
-
-Several data quality issues severely compromise model reliability. The negative resume word counts and mixed CGPA scales (exceeding 10.0) indicate fundamental data integrity problems that likely injected noise into model training. The extreme class imbalance (70:30 ratio) was clearly not mitigated through stratified sampling, SMOTE, or class weighting, causing model collapse to majority-class prediction. Additionally, the highly right-skewed experience distribution and sparse features (research papers, hackathons) suggest the model may have insufficient signal from rare but potentially predictive attributes. The lack of feature importance analysis leaves us blind to whether legitimate hiring signals exist in the data or if we're facing a fundamentally unpredictable target variable given available features.
-
-### Production Deployment Recommendations
-
-**Do not deploy this model to production in its current state.** Before any deployment consideration: (1) **Audit and clean the data**—investigate negative word counts, normalize CGPA by university tier, and validate all numeric ranges; (2) **Retrain with proper class imbalance handling**—implement stratified k-fold cross-validation, apply class weights inversely proportional to class frequencies, or use SMOTE for minority class oversampling; (3) **Evaluate with appropriate metrics**—report precision, recall, F1-score, and ROC-AUC for both classes, as accuracy is meaningless with imbalanced data; (4) **Conduct feature engineering**—create interaction terms between sparse features and experience, normalize skewed distributions, and generate domain-specific features (e.g., prestige scores combining CGPA and university tier). Only after achieving genuine minority class recall above 60% and confirming the model isn't simply predicting the majority class should deployment be considered, paired with human-in-the-loop validation for high-stakes hiring decisions.
 
 
 ![Comparison](model_comparison.png)

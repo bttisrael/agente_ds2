@@ -9,12 +9,12 @@
     "sq_age"
   ],
   "ai_features": [
-    "experience_efficiency",
-    "technical_breadth",
-    "academic_practical_product",
-    "skill_depth_score",
-    "career_momentum"
+    "experience_per_activity",
+    "practical_engagement",
+    "tech_depth_ratio",
+    "academic_practical_balance",
+    "specialization_score"
   ],
-  "ai_code": "\n# Feature 1: Experience efficiency score - capturing practical output per year of experience\ndf['experience_efficiency'] = (df['internships'] + df['projects'] + df['hackathons']) / (df['experience_years'] + 1)\n\n# Feature 2: Technical breadth score - ratio of programming languages to certifications\n# This captures whether candidate is generalist (high ratio) or specialist (low ratio)\ndf['technical_breadth'] = df['programming_languages'] / (df['certifications'] + 1)\n\n# Feature 3: Academic practical balance - interaction between academic performance and hands-on work\ndf['academic_practical_product'] = df['cgpa'] * (df['internships'] + df['projects'] + 1)\n\n# Feature 4: Skill depth indicator - non-linear combination showing concentrated expertise\n# Certifications and research papers indicate depth, while controlling for breadth\ndf['skill_depth_score'] = (df['certifications'] * 2 + df['research_papers'] * 3) / (df['programming_languages'] + 1)\n\n# Feature 5: Career momentum - captures age-adjusted experience and activity level\n# Younger candidates with more experience/activity show higher momentum\ndf['career_momentum'] = (df['experience_years'] * 2 + df['internships'] + df['hackathons']) / (df['age'] - 21 + 1)\n",
+  "ai_code": "\n# Feature 1: Experience to activity ratio - measures efficiency of experience gained\ndf['experience_per_activity'] = df['experience_years'] / (df['internships'] + df['projects'] + df['hackathons'] + 1)\n\n# Feature 2: Practical engagement score - weighted combination of hands-on activities\n# Internships and experience weighed more heavily than projects\ndf['practical_engagement'] = (df['internships'] * 2 + df['experience_years'] * 2.5 + df['projects'] * 1.5 + df['hackathons'])\n\n# Feature 3: Technical depth indicator - ratio of programming languages to total activities\n# High ratio suggests focused depth, low ratio suggests breadth without coding focus\ndf['tech_depth_ratio'] = df['programming_languages'] / (df['internships'] + df['projects'] + df['certifications'] + df['hackathons'] + 1)\n\n# Feature 4: Academic-practical balance - interaction between academic performance and practical work\n# Captures synergy between theory (CGPA) and practice (experience + internships)\ndf['academic_practical_balance'] = df['cgpa'] * np.sqrt(df['experience_years'] + df['internships'] + 1)\n\n# Feature 5: Specialized skills intensity - non-linear combination of certifications and research\n# Captures deep specialization through research and certification\ndf['specialization_score'] = (df['certifications'] ** 1.5) * (df['research_papers'] + 1) + df['programming_languages'] * 0.5\n",
   "ai_success": true
 }

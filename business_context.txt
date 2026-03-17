@@ -1,0 +1,5 @@
+Supply chain operations dataset from DataCo Global with 180k orders.
+Goal: predict Late_delivery_risk (1 = late, 0 = on time) to help
+operations managers proactively flag at-risk shipments and prioritize
+expedited handling. Key decisions: warehouse routing, carrier selection,
+customer communication.

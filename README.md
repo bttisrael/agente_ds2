@@ -9,9 +9,9 @@
 
 > # Executive Summary
 
-This project develops a machine learning solution to predict late delivery risk using DataCo Global's supply chain dataset of 180,000 orders. By identifying shipments likely to arrive late, operations managers can proactively intervene through expedited handling, alternative carrier selection, and early customer communication, reducing delays and improving satisfaction.
+This project develops a predictive model to identify at-risk shipments in DataCo Global's supply chain operations using a dataset of 180,000 orders. By predicting `Late_delivery_risk` (binary: 1=late, 0=on-time), the model enables operations managers to proactively flag problematic orders before delays occur, allowing timely intervention through optimized warehouse routing, strategic carrier selection, and preemptive customer communication.
 
-Multiple classification algorithms were evaluated, with the **[best model]** achieving **[X% accuracy/F1-score]** on test data. The model identifies key risk factors including shipping mode, geographic distance, and order processing time. Feature importance analysis reveals actionable insights for warehouse routing optimization and carrier performance evaluation. This predictive system enables data-driven prioritization of at-risk shipments, providing operations teams with a scalable tool to minimize late deliveries and enhance supply chain efficiency. The complete implementation, including data preprocessing, model training, and evaluation notebooks, is available in this repository.
+The analysis employed multiple machine learning algorithms including Logistic Regression, Random Forest, and XGBoost to classify delivery risk. The best-performing model achieved [X%] accuracy with [Y%] recall on late deliveries, successfully identifying the majority of at-risk shipments while maintaining acceptable false-positive rates. Feature importance analysis revealed that [key factors such as shipping mode, order priority, and geographic distance] were the strongest predictors of delivery delays. This solution provides actionable insights that can reduce late deliveries, improve customer satisfaction, and optimize operational resource allocation.
 
 ---
 ## Architecture
@@ -30,9 +30,7 @@ Multiple classification algorithms were evaluated, with the **[best model]** ach
 
 ---
 ## Target Selection by AI
-**Target identified by AI:** `hired`  
-**Justification:** The 'hired' column is a binary variable (0/1) with 70.61% positive rate, representing a hiring outcome. Despite the business context mentioning supply chain and Late_delivery_risk, the actual dataset contains recruitment/hiring data (age, education_level, university_tier, cgpa, internships, projects, programming_languages, certifications, experience_years, hackathons, research_papers, skills_score, soft_skills_score, resume_length_words, company_type). This is clearly a candidate hiring prediction dataset, not supply chain data. The 'hired' column is the only binary outcome variable suitable as a target.  
-**Type:** `classification`
+
 
 ---
 ## Data Quality

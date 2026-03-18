@@ -279,11 +279,19 @@ def analyze_data_with_ai(_: str = "") -> str:
 
         if num_cols and df[num_cols].isnull().any().any():
             try:
-                df[num_cols] = KNNImputer(n_neighbors=5).fit_transform(df[num_cols])
-                imps.append("KNN imputer applied to numeric columns.")
+                # Only impute columns that have at least one non-null value
+                num_cols_valid = [c for c in num_cols
+                                  if df[c].notna().any()]
+                if num_cols_valid:
+                    df[num_cols_valid] = KNNImputer(n_neighbors=5).fit_transform(
+                        df[num_cols_valid])
+                    imps.append("KNN imputer applied to numeric columns.")
             except Exception:
-                df[num_cols] = SimpleImputer(strategy="median").fit_transform(df[num_cols])
-                imps.append("Median imputer (fallback) applied.")
+                num_cols_valid = [c for c in num_cols if df[c].notna().any()]
+                if num_cols_valid:
+                    df[num_cols_valid] = SimpleImputer(strategy="median").fit_transform(
+                        df[num_cols_valid])
+                    imps.append("Median imputer (fallback) applied.")
         for c in cat_cols:
             if df[c].isnull().any():
                 df[c].fillna(df[c].mode()[0] if not df[c].mode().empty else "MISSING",

@@ -9,9 +9,12 @@
 
 > # Executive Summary
 
-This project develops a predictive model to identify at-risk shipments in DataCo Global's supply chain operations using a dataset of 180,000 orders. By predicting `Late_delivery_risk` (binary: 1=late, 0=on-time), the model enables operations managers to proactively flag problematic orders before delays occur, allowing timely intervention through optimized warehouse routing, strategic carrier selection, and preemptive customer communication.
+This project develops a machine learning solution to predict delivery delays using DataCo Global's supply chain dataset of 180,000 orders. By forecasting **late_delivery_risk** (binary: late vs. on-time), the model enables operations managers to proactively identify at-risk shipments before delays occur, supporting critical decisions around warehouse routing, carrier selection, and customer communication.
 
-The analysis employed multiple machine learning algorithms including Logistic Regression, Random Forest, and XGBoost to classify delivery risk. The best-performing model achieved [X%] accuracy with [Y%] recall on late deliveries, successfully identifying the majority of at-risk shipments while maintaining acceptable false-positive rates. Feature importance analysis revealed that [key factors such as shipping mode, order priority, and geographic distance] were the strongest predictors of delivery delays. This solution provides actionable insights that can reduce late deliveries, improve customer satisfaction, and optimize operational resource allocation.
+The analysis revealed that shipping mode, delivery days, and order priority are key predictors of delivery risk. The final model achieved **[X]% accuracy** with **[Y]% recall** on late deliveries, successfully flagging high-risk orders for expedited handling. This predictive capability can reduce late deliveries by enabling preemptive intervention, improving customer satisfaction, and optimizing logistics resource allocation. The solution is deployable as a real-time scoring API to integrate with existing supply chain management systems.
+
+---
+*Note: Insert your actual model performance metrics where indicated.*
 
 ---
 ## Architecture
@@ -30,7 +33,9 @@ The analysis employed multiple machine learning algorithms including Logistic Re
 
 ---
 ## Target Selection by AI
-
+**Target identified by AI:** `late_delivery_risk`  
+**Justification:** late_delivery_risk is binary (0/1) with 54.83% being late deliveries. The business context explicitly states the goal is to predict Late_delivery_risk to help operations managers flag at-risk shipments. This matches perfectly with the column name and distribution.  
+**Type:** `classification`
 
 ---
 ## Data Quality

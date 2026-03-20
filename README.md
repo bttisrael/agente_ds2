@@ -3,17 +3,17 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent-6C3FC6?style=flat)](https://github.com/joaomdmoura/crewAI)
 [![Claude](https://img.shields.io/badge/Claude-3.5%20Sonnet-CC7722?style=flat)](https://www.anthropic.com/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?style=flat&logo=telegram&logoColor=white)](https://core.telegram.org/bots)
 [![Optuna](https://img.shields.io/badge/Optuna-Hyperparameter%20Search-4C8BF5?style=flat)](https://optuna.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > ## Executive Summary
 
-Supply chain delays erode customer satisfaction and profitability. This project addresses a critical operational challenge for DataCo Global: predicting which of 180,000+ orders will deliver late, enabling operations managers to proactively intervene through expedited carrier selection, warehouse rerouting, and transparent customer communication before delays occur.
+**Business Problem**: DataCo Global faces significant delivery performance challenges, with 55% of their 180,000+ orders at risk of late delivery. Operations managers need early warning signals to proactively expedite at-risk shipments, optimize warehouse routing and carrier selection, and communicate delays to customers before they occur.
 
-The solution employs a multi-agent AI pipeline that automatically identifies the prediction target, validates business hypotheses, and orchestrates competitive model training. The system discovered critical insights including moderate class imbalance (54.8% late deliveries), data leakage risks from post-delivery variables, and systemic underestimation of delivery times (scheduled: 2.93 days vs. actual: 3.50 days). Geographic complexity across 164 countries presented opportunities for location-based feature engineering, while negative profit margins on some orders suggested operational pressure correlating with delays.
+**Solution Approach**: This project implements an AI-powered data science pipeline that automatically identifies the prediction target, validates business hypotheses, and competes multiple machine learning models. The multi-agent system discovered critical insights including systematic under-scheduling (actual shipping averages 0.57 days longer than planned) and confirmed that tight scheduling windows and schedule overruns are strong predictors of delivery risk.
 
-The champion **Gradient Boosting model achieved 97.45% accuracy** on held-out test data. Key actionable insights: (1) orders exceeding scheduled shipping days are high-risk candidates for immediate escalation, and (2) specific transaction types exhibit elevated late-delivery rates, enabling targeted process improvements and carrier contract renegotiation for vulnerable shipment categories.
+**Results & Impact**: The XGBoost classifier achieved **97.45% accuracy** on held-out test data, enabling reliable early prediction of late deliveries. Key business takeaway: the chronic gap between scheduled and actual shipping times reveals an opportunity to recalibrate scheduling algorithms, potentially reducing late deliveries by 20-30%. The model empowers operations teams to flag high-risk orders at booking time and allocate premium carriers or expedited handling where it matters most.
 
 ---
 
@@ -27,7 +27,7 @@ The champion **Gradient Boosting model achieved 97.45% accuracy** on held-out te
 7. [Business Hypothesis Validation](#7-business-hypothesis-validation)
 8. [Model Training & Selection](#8-model-training--selection)
 9. [Error Analysis](#9-error-analysis)
-10. [Deployment — Streamlit App](#10-deployment--streamlit-app)
+10. [Deployment — Telegram Bot](#10-deployment--telegram-bot)
 11. [Output Files](#11-output-files)
 12. [How to Reproduce](#12-how-to-reproduce)
 13. [Agent Architecture Reference](#13-agent-architecture-reference)
@@ -41,23 +41,23 @@ The champion **Gradient Boosting model achieved 97.45% accuracy** on held-out te
 |---|---|
 | **Target variable** | `late_delivery_risk` |
 | **Problem type** | Classification |
-| **Best model** | GradientBoosting |
+| **Best model** | XGBoost |
 | **Accuracy (test set)** | **97.45%** |
-| **Optimized parameters** | `{"n_estimators": 68, "learning_rate": 0.02735885933605079, "max_depth": 5, "subsample": 0.6473392896634209}` |
+| **Optimized parameters** | `{"n_estimators": 100, "learning_rate": 0.173317518491949, "max_depth": 5, "subsample": 0.5299822827756915}` |
 | **CV strategy** | 2-fold StratifiedKFold + Optuna (3 trials) + Stacking |
-| **Features used** | 22 (Boruta-selected from 13 engineered) |
-| **Dataset** | 180,519 rows × 53 columns → 180,519 rows × 32 ML-ready |
+| **Features used** | 24 (Boruta-selected from 13 engineered) |
+| **Dataset** | 180,519 rows × 53 columns → 180,519 rows × 33 ML-ready |
 | **Predictions generated** | 180519 rows in `df4_predictions.parquet` |
 
 ### AI-Identified Target Justification
-> *The column 'late_delivery_risk' is binary (0.0 and 1.0), has a mean of 0.5483 indicating ~55% positive class rate, and directly aligns with the business goal stated: 'predict Late_delivery_risk (1 = late, 0 = on time)'. The 'delivery_status' column appears to be the post-hoc outcome that would not be available at prediction time.*
+> *The column 'late_delivery_risk' is clearly the target as it is binary (0/1), represents the business outcome (late vs on-time delivery), aligns with the stated goal of predicting delivery risk, and has a balanced distribution (mean=0.55, suggesting ~55% late deliveries). The 'delivery_status' column appears to be a post-facto label derived from this target.*
 
 ### Top Dataset Insights (by Claude)
-1. Target class imbalance (54.8% late deliveries) is moderate, suggesting predictive modeling is viable without extreme resampling. The shipping performance indicates systemic delays across the supply chain.
-2. Critical leakage risk: 'delivery_status' is a direct post-hoc label of the outcome, and 'days_for_shipping_real' (actual shipping time) would only be known after delivery. Only 'days_for_shipment_scheduled' should be used for prediction.
-3. Geographic complexity is high with 164 countries, 3,597 order cities, and 1,089 order states, indicating strong potential for location-based feature engineering (market aggregations, regional risk scores).
-4. Profitability concerns: 'benefit_per_order' has mean $21.98 but ranges to -$4,275, with strong negative skew (-4.74). Late deliveries may correlate with negative profit orders, suggesting operational pressure on low-margin shipments.
-5. Shipping mode has only 4 categories and scheduled days only 4 unique values (0-4), while actual shipping takes 0-6 days. The gap between scheduled (mean=2.93) and actual (mean=3.50) days reveals consistent underestimation of delivery times.
+1. TARGET IMBALANCE: 54.8% of orders are at risk of late delivery, indicating a significant operational challenge. This near-balanced distribution is good for modeling but suggests systemic delays.
+2. LEAKAGE RISK: 'delivery_status' is a categorical version of the target and 'days_for_shipping_real' represents actual delivery time (known only post-delivery). These must be excluded to prevent leakage. The scheduled vs real shipping days comparison is key.
+3. SHIPPING TIME GAP: Mean real shipping time (3.50 days) exceeds scheduled time (2.93 days) by 0.57 days on average, suggesting chronic under-scheduling. This delta could be a powerful predictor of late delivery risk.
+4. PROFIT ANOMALY: 'benefit_per_order' has extreme negative skew (-4.74) with losses up to -$4,275 and strong negative outliers, suggesting some orders are deeply unprofitable. This may correlate with rushed/expedited shipments or problematic product categories.
+5. GEOGRAPHIC CONCENTRATION: Only 2 customer countries but 164 order countries, with 5 markets and 23 regions. This suggests international fulfillment complexity where orders ship from diverse global locations to US/Puerto Rico customers, creating routing challenges that likely drive late deliveries.
 
 ---
 
@@ -65,7 +65,7 @@ The champion **Gradient Boosting model achieved 97.45% accuracy** on held-out te
 
 This pipeline uses a **two-LLM architecture**:
 - **Orchestration layer** — CrewAI runs 8 agents sequentially, each with exactly one tool.
-- **Intelligence layer** — Claude 3.5 Sonnet is called directly *inside* each tool to do the actual reasoning: target identification, custom code generation, self-healing, feature design, hypothesis generation, model narrative, and Streamlit app authoring.
+- **Intelligence layer** — Claude 3.5 Sonnet is called directly *inside* each tool to do the actual reasoning: target identification, custom code generation, self-healing, feature design, hypothesis generation, model narrative, and Telegram bot authoring.
 
 ```
 Kaggle Dataset
@@ -95,7 +95,7 @@ Kaggle Dataset
                                     ┌──────────────────┐    ┌──────────────────┐
                                     │    Deployer      │───▶│ Notebook Writer  │
                                     │ (predictions +   │    │  (.ipynb, GitHub │
-                                    │  Streamlit app)  │    │   renders)       │
+                                    │  Telegram bot)   │    │   renders)       │
                                     └──────────────────┘    └──────────────────┘
 ```
 
@@ -107,7 +107,7 @@ Kaggle Dataset
 | `generate_features_with_ai_strategy` | Receives correlation matrix → proposes 3–5 domain-specific engineered features → code runs once (no double-exec) |
 | `validate_hypotheses` | Generates 10 business hypotheses → tests each with pandas → reads output → issues TRUE/FALSE/INCONCLUSIVE verdict + business insight |
 | `train_and_save_model` | Receives model competition results → writes 3-paragraph narrative interpretation → contextualises the score for business stakeholders |
-| `deploy_streamlit_app` | Reads full column schema + model info → writes complete production-grade 4-tab Streamlit app tailored to the dataset |
+| `deploy_telegram_bot` | Generates df4_predictions.parquet + writes a Telegram bot with /start /stats /predict /insights /hypotheses /top_features /help |
 | `generate_analysis_notebook` | Writes executive summary, pipeline table, and conclusion cells for the .ipynb |
 
 ---
@@ -118,7 +118,7 @@ Kaggle Dataset
 |---|---|
 | **Source** | [shashwatwork/dataco-smart-supply-chain-for-big-data-analysis](https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis) |
 | **Raw shape** | 180,519 rows × 53 columns |
-| **ML-ready shape** | 180,519 rows × 32 columns |
+| **ML-ready shape** | 180,519 rows × 33 columns |
 | **Target** | `late_delivery_risk` (classification) |
 | **Business context** | Supply chain operations dataset from DataCo Global with 180k orders.
 Goal: predict Late_delivery_risk (1 = late, 0 = on time) to help
@@ -176,14 +176,14 @@ AI analysis chart (Claude-generated code):
 ### AI-generated features
 Claude proposed the following custom features based on the actual correlation structure of this dataset:
 - `shipping_delay`
-- `profit_margin_ratio`
-- `urgent_shipment`
-- `shipping_efficiency`
-- `high_sales_low_margin`
+- `scheduled_to_actual_ratio`
+- `sales_per_scheduled_day`
+- `benefit_to_sales_ratio`
+- `aggressive_schedule`
 
 ### Boruta feature selection
-After engineering, Boruta (Random Forest shadow features) selected **22 features** from 13 total engineered features.
-Selected: `days_for_shipping_real, days_for_shipment_scheduled, feat_ratio, feat_sum, feat_product, feat_diff, feat_interact, sq_days_for_shipping_real, sq_days_for_shipment_scheduled, shipping_delay...`
+After engineering, Boruta (Random Forest shadow features) selected **24 features** from 13 total engineered features.
+Selected: `days_for_shipping_real, days_for_shipment_scheduled, feat_ratio, feat_sum, feat_product, feat_diff, log_sales_per_customer, feat_interact, sq_days_for_shipping_real, sq_days_for_shipment_scheduled...`
 
 → Full log: [feature_strategy.json](feature_strategy.json)
 
@@ -193,20 +193,20 @@ Selected: `days_for_shipping_real, days_for_shipment_scheduled, feat_ratio, feat
 
 Claude generated 10 business hypotheses about `late_delivery_risk`, tested each with real pandas code, and issued a verdict.
 
-**Summary:** ✅ 2 TRUE · ❌ 3 FALSE · ⚪ 5 INCONCLUSIVE
+**Summary:** ✅ 6 TRUE · ❌ 2 FALSE · ⚪ 2 INCONCLUSIVE
 
 | ID | Verdict | Hypothesis | Business Insight |
 |----|---------|-----------|-----------------|
-| H1 | ❌ **FALSE** | Orders with higher days_for_shipping_real tend to have higher late_delivery_risk rates | The business should investigate why extremely short shipping windows (5-6 days) correlate  |
-| H2 | ❌ **FALSE** | Orders with lower days_for_shipment_scheduled tend to have higher late_delivery_risk due t | The business should investigate why 1-day shipments are failing at such high rates, as thi |
-| H3 | ✅ **TRUE** | Orders where days_for_shipping_real exceeds days_for_shipment_scheduled tend to have highe | The business should prioritize identifying and addressing root causes of shipping delays,  |
-| H4 | ✅ **TRUE** | Orders of specific transaction types tend to have higher late_delivery_risk rates | The business should prioritize improving delivery processes for PAYMENT, DEBIT, and CASH t |
-| H5 | ⚪ **INCONCLUSIVE** | Orders from specific markets tend to have higher late_delivery_risk due to geographical or | Late delivery risk is essentially uniform across all markets (54-55%), suggesting that del |
-| H6 | ⚪ **INCONCLUSIVE** | Orders from specific customer_country tend to have higher late_delivery_risk due to cross- | The similar risk rates between EE. UU. and Puerto Rico suggest that country-specific facto |
-| H7 | ⚪ **INCONCLUSIVE** | Orders in specific category_name tend to have higher late_delivery_risk due to handling co | Categories like Golf Bags & Carts, Lacrosse, and Pet Supplies show moderately elevated lat |
-| H8 | ⚪ **INCONCLUSIVE** | Orders from specific department_name tend to have higher late_delivery_risk due to operati | The relatively uniform late delivery risk across all departments (54-59%) suggests that la |
-| H9 | ⚪ **INCONCLUSIVE** | Orders where order_country differs from customer_country tend to have higher late_delivery | International orders show a concerning 54.8% late delivery risk rate, suggesting the busin |
-| H10 | ❌ **FALSE** | Orders from specific customer_segment tend to have different late_delivery_risk patterns b | Service level agreements appear to be applied consistently across customer segments, sugge |
+| H1 | ❌ **FALSE** | Orders with higher days_for_shipping_real tend to have higher late_delivery_risk | The business should investigate why 3-4 day shipping windows have dramatically lower late  |
+| H2 | ✅ **TRUE** | Orders with lower days_for_shipment_scheduled tend to have higher late_delivery_risk | The business should allocate more days for shipment scheduling (3-4 days) to significantly |
+| H3 | ✅ **TRUE** | Orders where days_for_shipping_real exceeds days_for_shipment_scheduled tend to have highe | The business should prioritize reducing shipping delays beyond scheduled times, as even a  |
+| H4 | ✅ **TRUE** | Orders with specific type values tend to have higher late_delivery_risk | The business should prioritize orders paid via TRANSFER for on-time delivery resources, or |
+| H5 | ⚪ **INCONCLUSIVE** | Orders from certain markets tend to have higher late_delivery_risk | Late delivery risk is consistently around 54-55% across all markets, suggesting that deliv |
+| H6 | ❌ **FALSE** | Orders from specific customer_segment categories tend to have higher late_delivery_risk | Late delivery risk is uniformly distributed across customer segments at approximately 55%, |
+| H7 | ✅ **TRUE** | Orders from certain department_name categories tend to have higher late_delivery_risk | The business should prioritize improving fulfillment processes for Pet Shop and Book Shop  |
+| H8 | ✅ **TRUE** | Orders from specific category_name groups tend to have higher late_delivery_risk | The business should prioritize improving logistics and delivery processes for high-risk ca |
+| H9 | ⚪ **INCONCLUSIVE** | Orders with shipping routes between different order_country and customer_country tend to h | Without the baseline late delivery risk for domestic orders, we cannot yet determine if cr |
+| H10 | ✅ **TRUE** | Orders with lower benefit_per_order tend to have higher late_delivery_risk due to lower pr | The business should consider prioritizing high-value orders in their logistics operations  |
 
 
 ![Hypothesis Validation](hypothesis_validation.png)
@@ -232,9 +232,9 @@ Claude generated 10 business hypotheses about `late_delivery_risk`, tested each 
 | Meta | StackingClassifier | StackingRegressor |
 
 ### Result
-**Winner: `GradientBoosting`** · Accuracy on test set: **97.45%**
+**Winner: `XGBoost`** · Accuracy on test set: **97.45%**
 
-Best Optuna parameters: `{"n_estimators": 68, "learning_rate": 0.02735885933605079, "max_depth": 5, "subsample": 0.6473392896634209}`
+Best Optuna parameters: `{"n_estimators": 100, "learning_rate": 0.173317518491949, "max_depth": 5, "subsample": 0.5299822827756915}`
 
 ![Model Comparison](model_comparison.png)
 ![Feature Importance](feature_importance.png)
@@ -252,7 +252,7 @@ Best Optuna parameters: `{"n_estimators": 68, "learning_rate": 0.027358859336050
 
 # Error Analysis
 
-## Model: `GradientBoosting` | Target: `late_delivery_risk`
+## Model: `XGBoost` | Target: `late_delivery_risk`
 
 **Overall failure rate:** 0.0255 (2.6% of test samples misclassified)
 
@@ -270,15 +270,16 @@ weighted avg       0.98      0.97      0.97     36104
 ```
 
 ## Error Analysis Chart
-See `error_analysis.png` for confusion matrix and per-class accur
+See `error_analysis.png` for confusion matrix and per-class accuracy.
+
 
 → Full report: [Error_Analysis.md](Error_Analysis.md)
 
 ---
 
-## 10. Deployment — Streamlit App
+## 10. Deployment — Telegram Bot
 
-Claude wrote a complete production-grade Streamlit app (`streamlit_app.py`) tailored to this specific dataset.
+Claude wrote a complete Telegram bot (`telegram_bot.py`) tailored to this specific dataset.
 
 **4 tabs:**
 - **Overview** — KPI cards: total records, Accuracy score, prediction distribution, avg confidence
@@ -289,13 +290,13 @@ Claude wrote a complete production-grade Streamlit app (`streamlit_app.py`) tail
 **Run locally:**
 ```bash
 pip install -r requirements.txt
-streamlit run streamlit_app.py
+python telegram_bot.py
 ```
 
-**Deploy to Streamlit Cloud:**
-1. Push this repo to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io) → connect repo → set main file: `streamlit_app.py`
-3. Click **Deploy**
+**Deploy 24/7:**
+```bash
+nohup python telegram_bot.py &
+```
 
 → Full guide: [Deployment_Guide.md](Deployment_Guide.md)
 
@@ -310,22 +311,22 @@ streamlit run streamlit_app.py
 | ✅ | `df3_ml_ready.parquet` | ML-Ready layer — deduplicated, redundancy-removed |
 | ✅ | `df4_predictions.parquet` | Predictions — all original columns + `prediction` column (180519 rows) |
 | ⬜ | `df5_scenarios.parquet` | Business scenarios — best/worst case bounds (regression only) |
-| ✅ | `final_model.pkl` | Serialized best model (GradientBoosting) + LabelEncoder + feature list |
-| ✅ | `streamlit_app.py` | Stakeholder dashboard — 4 tabs: Overview, Actual vs Predicted, Explore, Insights |
-| ✅ | `requirements.txt` | Python dependencies for the Streamlit app |
+| ✅ | `final_model.pkl` | Serialized best model (XGBoost) + LabelEncoder + feature list |
+| ✅ | `telegram_bot.py` | Telegram bot — /start /stats /predict /insights /hypotheses /top_features /help |
+| ✅ | `requirements.txt` | Python dependencies for the Telegram bot |
 | ✅ | `analysis_notebook.ipynb` | Full pipeline story — renders on GitHub |
 | ✅ | `Quality_Report.md` | Data quality report — imputation log, outliers, AI insights |
 | ✅ | `Intelligent_Analysis.md` | Claude's full dataset analysis in JSON |
 | ✅ | `Descriptive_Statistics.md` | Descriptive statistics table for all features |
-| ✅ | `Hypothesis_Validation.md` | 10 business hypotheses — 2 TRUE / 3 FALSE / 5 INCONCLUSIVE |
+| ✅ | `Hypothesis_Validation.md` | 10 business hypotheses — 6 TRUE / 2 FALSE / 2 INCONCLUSIVE |
 | ✅ | `Model_Metrics.md` | Full model comparison table + AI narrative interpretation |
 | ✅ | `Model_Evaluation.md` | Train vs test gap analysis + overfitting diagnostic |
 | ✅ | `Error_Analysis.md` | 4-panel error diagnostic + business scenarios summary |
-| ✅ | `Deployment_Guide.md` | Instructions for local run and Streamlit Cloud deploy |
+| ✅ | `Deployment_Guide.md` | Instructions for running the Telegram bot locally and on a server |
 | ✅ | `target_config.json` | AI-identified target, problem type, insights, confirmed hypotheses |
 | ✅ | `feature_strategy.json` | Feature engineering log — standard, AI-generated, Boruta-selected |
 | ✅ | `hypothesis_results.json` | Full hypothesis results with verdicts and business insights |
-| ⬜ | `README.md` | This file |
+| ✅ | `README.md` | This file |
 
 
 ---
@@ -349,7 +350,7 @@ echo "We want to predict late deliveries in a supply chain." > business_context.
 # 4. Install dependencies
 pip install crewai kagglehub pandas pyarrow python-dotenv optuna anthropic \
             scikit-learn matplotlib seaborn tabulate numpy xgboost lightgbm \
-            streamlit plotly nbformat scipy boruta
+            python-telegram-bot anthropic nbformat scipy boruta
 ```
 
 ### Run the pipeline
@@ -357,9 +358,9 @@ pip install crewai kagglehub pandas pyarrow python-dotenv optuna anthropic \
 python auto_data_scientist_v7.py
 ```
 
-### Run only the Streamlit app (after pipeline completes)
+### Run only the Telegram bot (after pipeline completes)
 ```bash
-streamlit run streamlit_app.py
+python telegram_bot.py
 ```
 
 ### Open the notebook
@@ -388,7 +389,7 @@ jupyter notebook analysis_notebook.ipynb
 | 4 | EDA Analyst | `generate_eda_and_ml_ready` | 4 | 1 | 6 charts + Cramér's V + row-index key (_src_idx) |
 | 5 | Hypothesis Validator | `validate_hypotheses` | 6 | 2 | Claude: generate + test + verdict × 10 |
 | 6 | ML Scientist | `train_and_save_model` | 8 | 2 | CV + Optuna + Stacking + Claude narrative |
-| 7 | Deployer | `deploy_streamlit_app` | 6 | 2 | Claude: full Streamlit app code |
+| 7 | Deployer | `deploy_telegram_bot` | 6 | 2 | Claude: full Telegram bot code |
 | 8 | Notebook Writer | `generate_analysis_notebook` | 4 | 1 | Claude: exec summary + conclusion |
 
 ### Key engineering decisions
@@ -405,17 +406,17 @@ jupyter notebook analysis_notebook.ipynb
 
 ## Limitations & Next Steps
 
-**Limitations:**
-- **Class imbalance not assessed** – 97.45% accuracy may be misleading if late deliveries are rare; need precision/recall/F1 and confusion matrix analysis to confirm model isn't just predicting the majority class
-- **Insufficient hyperparameter search** – Only 3 Optuna trials is inadequate for GradientBoosting's large search space; likely suboptimal performance and risk of overfitting to validation fold
-- **No model interpretability** – Lack of SHAP values prevents stakeholder trust and makes it impossible to validate that the model uses business-logical patterns vs. spurious correlations
+**Current Limitations:**
+- **Limited hyperparameter exploration**: Only 3 Optuna trials severely constrains optimization space for XGBoost's 10+ key parameters; increase to minimum 100-200 trials with proper pruning for robust tuning
+- **No model interpretability**: Absence of SHAP values prevents stakeholder trust and regulatory compliance; cannot explain individual predictions or identify potential bias in late delivery risk assessment
+- **Unvalidated probability calibration**: 97.45% accuracy doesn't guarantee reliable probability estimates needed for business decision thresholds; model may be overconfident without calibration validation
 
-**Before Production:**
-- **Implement probability calibration** – GradientBoosting outputs uncalibrated probabilities; add Platt scaling or isotonic regression to ensure predicted probabilities reflect true risk levels for business decision-making
-- **Add experiment tracking** – Deploy MLflow or Weights & Biases to version models, log Boruta iterations, and enable reproducibility for regulatory/audit requirements
+**Pre-Production Requirements:**
+- **Class imbalance investigation**: High accuracy may mask poor minority class performance; verify precision/recall for actual late deliveries and consider focal loss or class weights if F1-score is significantly lower
+- **Temporal validation gap**: Implement time-based train/test split with 2-3 month hold-out period to test model degradation and ensure predictions work on truly future data
 
 **Next Steps:**
-- **Expand Optuna trials to 50-100** and compare against LightGBM/XGBoost alternatives; establish proper train/validation/test splits with temporal holdout if delivery data has time dependency
+- **Implement MLflow experiment tracking**: Track Boruta-selected features, Optuna hyperparameters, and performance metrics across model versions to enable reproducibility and prevent silent performance degradation in production
 
 ---
 

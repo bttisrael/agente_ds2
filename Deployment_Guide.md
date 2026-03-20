@@ -1,33 +1,52 @@
-# Streamlit Deployment Guide
+# Telegram Bot Deployment Guide
 
-## Files Generated
-| File | Description |
-|------|-------------|
-| `streamlit_app.py` | Stakeholder-facing dashboard |
-| `df4_predictions.parquet` | Full dataset + predictions |
-| `requirements.txt` | Python dependencies |
+## Setup
 
-## Run Locally
-```bash
-pip install -r requirements.txt
-streamlit run streamlit_app.py
+### 1. Create your Telegram bot
+1. Open Telegram and search for **@BotFather**
+2. Send `/newbot` and follow the instructions
+3. Copy the token you receive
+
+### 2. Add token to .env
+```
+TELEGRAM_BOT_TOKEN=your_token_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
 ```
 
-## Deploy to Streamlit Cloud
-1. Push this repo to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect your repo → set **Main file**: `streamlit_app.py`
-4. Click **Deploy**
+### 3. Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-## What the App Shows
-- **Overview**: KPI cards — total records, model Accuracy (0.9745), prediction distribution
-- **Actual vs Predicted**: Confusion matrix + class distribution comparison
-- **Explore Predictions**: Filterable table with color-coded predictions + CSV download
-- **Feature Insights**: Feature importance and correlation matrix charts
+### 4. Run the bot
+```bash
+python telegram_bot.py
+```
 
-## Prediction Data Schema
-- All 55 original columns preserved
-- `prediction` — model output (class label)
-- `prediction_proba` — model confidence (0–1)
-- `late_delivery_risk` — actual value (ground truth for comparison)
-- Row alignment: guaranteed via _src_idx (FIX-5)
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Welcome message and command list |
+| `/stats` | Dataset and model summary (Accuracy: 0.9745) |
+| `/top_features` | Top 7 predictive features with business explanation |
+| `/hypotheses` | Validated TRUE business hypotheses |
+| `/predict` | Interactive prediction — enter feature values via chat |
+| `/insights` | AI-generated business insight powered by Claude |
+| `/help` | List all commands |
+
+## Model Info
+- **Model:** XGBoost
+- **Target:** `late_delivery_risk` (classification)
+- **Accuracy:** 0.9745
+- **Rows in df4_predictions.parquet:** 180,519
+
+## Deploy to a Server (keep bot running 24/7)
+```bash
+# Option 1: nohup (Linux/Mac)
+nohup python telegram_bot.py &
+
+# Option 2: systemd service (Linux)
+# Option 3: Railway, Render, or Fly.io (free tier available)
+# Option 4: AWS Lambda + polling (serverless)
+```

@@ -1,6 +1,6 @@
 # Model Evaluation
 
-## `GradientBoosting`
+## `XGBoost`
 **Type:** classification | **Target:** `late_delivery_risk`
 
 | Dataset   | Accuracy |
@@ -11,16 +11,18 @@
 
 ## AI Diagnostic
 
-This GradientBoosting classification model is **well-fitted**. The training accuracy of 97.58% and test accuracy of 97.45% are both high and nearly identical, with only a 0.13% gap between them. This minimal difference indicates the model generalizes excellently to unseen data without memorizing the training set. There are no signs of overfitting (which would show a large gap with much higher training accuracy) or underfitting (which would show poor performance on both sets).
+## Model Diagnosis: Well-Fitted
 
-The model is performing strongly and is ready for deployment to predict late delivery risk. The near-equal performance across train and test sets suggests robust learning of the underlying patterns. However, you should still validate the model on recent production data, monitor for concept drift over time, and ensure the 97.45% accuracy meets your business requirements for this particular use case (considering the costs of false positives vs false negatives in delivery predictions).
+This XGBoost classification model demonstrates **excellent fit** with no significant overfitting or underfitting issues. The training accuracy of 97.58% and test accuracy of 97.45% are nearly identical, with only a 0.13% gap between them. This minimal difference indicates the model generalizes very well to unseen data and hasn't memorized the training set. The high performance on both datasets suggests the model has successfully learned the underlying patterns for predicting late delivery risk.
+
+The model is production-ready from a bias-variance perspective. However, you should verify that this high accuracy isn't misleading due to class imbalance in your target variable. If late deliveries are rare (or very common), ensure you're also evaluating precision, recall, and F1-score for both classes. Additionally, confirm the model's performance on recent data to ensure these patterns remain stable over time.
 
 ## Optimized Parameters (Optuna)
 ```json
 {
-  "n_estimators": 68,
-  "learning_rate": 0.02735885933605079,
+  "n_estimators": 100,
+  "learning_rate": 0.173317518491949,
   "max_depth": 5,
-  "subsample": 0.6473392896634209
+  "subsample": 0.5299822827756915
 }
 ```

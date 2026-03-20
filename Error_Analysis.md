@@ -1,6 +1,6 @@
 # Error Analysis
 
-## Model: `GradientBoosting` | Target: `late_delivery_risk`
+## Model: `XGBoost` | Target: `late_delivery_risk`
 
 **Overall failure rate:** 0.0255 (2.6% of test samples misclassified)
 

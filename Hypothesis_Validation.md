@@ -1,16 +1,16 @@
 # Hypothesis Validation
 
-**Target:** `late_delivery_risk` | TRUE: 2 | FALSE: 3 | INCONCLUSIVE: 5
+**Target:** `late_delivery_risk` | TRUE: 6 | FALSE: 2 | INCONCLUSIVE: 2
 
 | ID | Hypothesis | Verdict | Business Insight |
 |----|-----------|---------|-----------------|
-| H1 | Orders with higher days_for_shipping_real tend to have higher late_delivery_risk | **FALSE** | The business should investigate why extremely short shipping windows (5-6 days)  |
-| H2 | Orders with lower days_for_shipment_scheduled tend to have higher late_delivery_ | **FALSE** | The business should investigate why 1-day shipments are failing at such high rat |
-| H3 | Orders where days_for_shipping_real exceeds days_for_shipment_scheduled tend to  | **TRUE** | The business should prioritize identifying and addressing root causes of shippin |
-| H4 | Orders of specific transaction types tend to have higher late_delivery_risk rate | **TRUE** | The business should prioritize improving delivery processes for PAYMENT, DEBIT,  |
-| H5 | Orders from specific markets tend to have higher late_delivery_risk due to geogr | **INCONCLUSIVE** | Late delivery risk is essentially uniform across all markets (54-55%), suggestin |
-| H6 | Orders from specific customer_country tend to have higher late_delivery_risk due | **INCONCLUSIVE** | The similar risk rates between EE. UU. and Puerto Rico suggest that country-spec |
-| H7 | Orders in specific category_name tend to have higher late_delivery_risk due to h | **INCONCLUSIVE** | Categories like Golf Bags & Carts, Lacrosse, and Pet Supplies show moderately el |
-| H8 | Orders from specific department_name tend to have higher late_delivery_risk due  | **INCONCLUSIVE** | The relatively uniform late delivery risk across all departments (54-59%) sugges |
-| H9 | Orders where order_country differs from customer_country tend to have higher lat | **INCONCLUSIVE** | International orders show a concerning 54.8% late delivery risk rate, suggesting |
-| H10 | Orders from specific customer_segment tend to have different late_delivery_risk  | **FALSE** | Service level agreements appear to be applied consistently across customer segme |
+| H1 | Orders with higher days_for_shipping_real tend to have higher late_delivery_risk | **FALSE** | The business should investigate why 3-4 day shipping windows have dramatically l |
+| H2 | Orders with lower days_for_shipment_scheduled tend to have higher late_delivery_ | **TRUE** | The business should allocate more days for shipment scheduling (3-4 days) to sig |
+| H3 | Orders where days_for_shipping_real exceeds days_for_shipment_scheduled tend to  | **TRUE** | The business should prioritize reducing shipping delays beyond scheduled times,  |
+| H4 | Orders with specific type values tend to have higher late_delivery_risk | **TRUE** | The business should prioritize orders paid via TRANSFER for on-time delivery res |
+| H5 | Orders from certain markets tend to have higher late_delivery_risk | **INCONCLUSIVE** | Late delivery risk is consistently around 54-55% across all markets, suggesting  |
+| H6 | Orders from specific customer_segment categories tend to have higher late_delive | **FALSE** | Late delivery risk is uniformly distributed across customer segments at approxim |
+| H7 | Orders from certain department_name categories tend to have higher late_delivery | **TRUE** | The business should prioritize improving fulfillment processes for Pet Shop and  |
+| H8 | Orders from specific category_name groups tend to have higher late_delivery_risk | **TRUE** | The business should prioritize improving logistics and delivery processes for hi |
+| H9 | Orders with shipping routes between different order_country and customer_country | **INCONCLUSIVE** | Without the baseline late delivery risk for domestic orders, we cannot yet deter |
+| H10 | Orders with lower benefit_per_order tend to have higher late_delivery_risk due t | **TRUE** | The business should consider prioritizing high-value orders in their logistics o |

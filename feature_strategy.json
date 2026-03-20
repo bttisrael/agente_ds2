@@ -10,13 +10,36 @@
     "sq_days_for_shipment_scheduled"
   ],
   "ai_features": [
-    "shipping_efficiency_ratio",
-    "profit_per_shipping_day",
-    "customer_value_density",
-    "product_complexity_score",
-    "geo_distance_proxy",
-    "shipping_distance_efficiency"
+    "shipping_delay",
+    "profit_margin_ratio",
+    "urgent_shipment",
+    "shipping_efficiency",
+    "high_sales_low_margin"
   ],
-  "ai_code": "\n# 1. Shipping efficiency ratio: how actual shipping compares to scheduled (non-leaky alternative to gap)\n# Higher values indicate shipments taking longer than planned - strong late delivery signal\ndf['shipping_efficiency_ratio'] = df['days_for_shipping_real'] / (df['days_for_shipment_scheduled'] + 0.1)\n\n# 2. Profit margin per day of shipping (economic efficiency)\n# Measures if rushed/expensive shipping is justified by profit\ndf['profit_per_shipping_day'] = df['benefit_per_order'] / (df['days_for_shipment_scheduled'] + 1)\n\n# 3. Customer value density (sales per geographic unit)\n# High-value customers in tight geographic areas may get priority handling\ndf['customer_value_density'] = df['sales_per_customer'] / (np.abs(df['latitude']) + np.abs(df['longitude']) + 1)\n\n# 4. Order complexity score combining department and category diversity\n# Products from certain dept/category combinations may be harder to fulfill\ndf['product_complexity_score'] = (df['department_id'] * df['category_id']) / (df['days_for_shipment_scheduled'] + 1)\n\n# 5. Geographic shipping challenge: distance from origin (0,0) weighted by scheduled time\n# Captures whether scheduled shipping time is appropriate for distance\ndf['geo_distance_proxy'] = np.sqrt(df['latitude']**2 + df['longitude']**2)\ndf['shipping_distance_efficiency'] = df['geo_distance_proxy'] / (df['days_for_shipment_scheduled'] + 1)\n",
+  "boruta_selected": [
+    "days_for_shipping_real",
+    "days_for_shipment_scheduled",
+    "feat_ratio",
+    "feat_sum",
+    "feat_product",
+    "feat_diff",
+    "feat_interact",
+    "sq_days_for_shipping_real",
+    "sq_days_for_shipment_scheduled",
+    "shipping_delay",
+    "urgent_shipment",
+    "shipping_efficiency",
+    "type_DEBIT",
+    "type_TRANSFER",
+    "delivery_status_Late delivery",
+    "delivery_status_Shipping canceled",
+    "delivery_status_Shipping on time",
+    "order_status_PENDING",
+    "order_status_PROCESSING",
+    "order_status_SUSPECTED_FRAUD",
+    "shipping_mode_Second Class",
+    "shipping_mode_Standard Class"
+  ],
+  "ai_code": "\n# Feature 1: Shipping delay/urgency indicator - difference between scheduled and real shipping days\n# Positive values indicate delays, negative indicate early delivery\ndf['shipping_delay'] = df['days_for_shipping_real'] - df['days_for_shipment_scheduled']\n\n# Feature 2: Profit margin per customer sale ratio\n# Captures efficiency of profit generation relative to sales volume\ndf['profit_margin_ratio'] = df['benefit_per_order'] / (df['sales_per_customer'] + 1)\n\n# Feature 3: Scheduled shipping urgency flag - binary indicator for very tight schedules\n# Orders with <=2 days scheduled shipping are high risk\ndf['urgent_shipment'] = (df['days_for_shipment_scheduled'] <= 2).astype(int)\n\n# Feature 4: Shipping efficiency score - combines scheduled days with actual performance\n# Lower values indicate more efficient shipping (actual close to or better than scheduled)\ndf['shipping_efficiency'] = df['days_for_shipping_real'] / (df['days_for_shipment_scheduled'] + 0.5)\n\n# Feature 5: High value low margin flag - identifies potentially problematic orders\n# High sales but low benefit could indicate complex/risky orders\ndf['high_sales_low_margin'] = ((df['sales_per_customer'] > df['sales_per_customer'].median()) & \n                                (df['benefit_per_order'] < df['benefit_per_order'].median())).astype(int)\n",
   "ai_success": true
 }

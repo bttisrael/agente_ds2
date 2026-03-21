@@ -1,8 +1,8 @@
-# Auto Data Scientist v7.1 — Multi-Agent Pipeline
+# Auto Data Scientist v2 — Multi-Agent Pipeline
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent-6C3FC6?style=flat)](https://github.com/joaomdmoura/crewAI)
-[![Claude](https://img.shields.io/badge/Claude-3.5%20Sonnet-CC7722?style=flat)](https://www.anthropic.com/)
+[![Claude](https://img.shields.io/badge/Claude-4.5%20Sonnet-CC7722?style=flat)](https://www.anthropic.com/)
 [![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?style=flat&logo=telegram&logoColor=white)](https://core.telegram.org/bots)
 [![Optuna](https://img.shields.io/badge/Optuna-Hyperparameter%20Search-4C8BF5?style=flat)](https://optuna.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

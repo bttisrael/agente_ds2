@@ -1,4 +1,4 @@
-# Auto Data Scientist v7.1 — SOTA Multi-Agent Pipeline
+# Auto Data Scientist v7.1 — Multi-Agent Pipeline
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent-6C3FC6?style=flat)](https://github.com/joaomdmoura/crewAI)

@@ -1,29 +1,25 @@
 {
   "target_col": "late_delivery_risk",
   "problem_type": "classification",
-  "ai_justification": "The column 'late_delivery_risk' is clearly the target as it is binary (0/1), represents the business outcome (late vs on-time delivery), aligns with the stated goal of predicting delivery risk, and has a balanced distribution (mean=0.55, suggesting ~55% late deliveries). The 'delivery_status' column appears to be a post-facto label derived from this target.",
-  "ai_feature_strategy": "1. **Shipping Time Features**: Create 'shipping_delay' (real - scheduled), 'delay_ratio' (real/scheduled), and interaction with shipping_mode. Engineer binary flags for 'scheduled_too_optimistic' (scheduled < 3 days) and 'weekend_delivery' from parsed dates. 2. **Geographic Complexity**: Calculate 'order_customer_distance' using haversine formula on lat/long pairs, create 'cross_border' flag (order_country != customer_country), and encode 'market' + 'region' combinations to capture fulfillment complexity. 3. **Product/Order Economics**: Create 'is_profitable' (benefit_per_order > 0), 'discount_to_price_ratio', 'quantity_category' bins, and 'high_value_order' flag (sales > 300). Aggregate customer-level features like 'customer_avg_order_value' and 'customer_order_count'. 4. **Categorical Encoding**: Target-encode high-cardinality geography (order_country, order_city, customer_city) using late_delivery_risk mean with regularization. One-hot encode low-cardinality (shipping_mode, customer_segment, type, market). 5. **Temporal Features**: Parse order_date to extract 'day_of_week', 'month', 'hour', 'is_weekend', 'is_holiday_season' (Nov-Dec), and 'days_since_first_order' per customer. 6. **Remove Leakage**: Drop delivery_status, days_for_shipping_real (use only scheduled), shipping_date, and all IDs/PII columns before modeling.",
+  "ai_justification": "Auto-selected fallback: 'late_delivery_risk' chosen from actual dataset columns.",
+  "ai_feature_strategy": "Create ratio and interaction features between numeric variables.",
   "ai_insights": [
-    "TARGET IMBALANCE: 54.8% of orders are at risk of late delivery, indicating a significant operational challenge. This near-balanced distribution is good for modeling but suggests systemic delays.",
-    "LEAKAGE RISK: 'delivery_status' is a categorical version of the target and 'days_for_shipping_real' represents actual delivery time (known only post-delivery). These must be excluded to prevent leakage. The scheduled vs real shipping days comparison is key.",
-    "SHIPPING TIME GAP: Mean real shipping time (3.50 days) exceeds scheduled time (2.93 days) by 0.57 days on average, suggesting chronic under-scheduling. This delta could be a powerful predictor of late delivery risk.",
-    "PROFIT ANOMALY: 'benefit_per_order' has extreme negative skew (-4.74) with losses up to -$4,275 and strong negative outliers, suggesting some orders are deeply unprofitable. This may correlate with rushed/expedited shipments or problematic product categories.",
-    "GEOGRAPHIC CONCENTRATION: Only 2 customer countries but 164 order countries, with 5 markets and 23 regions. This suggests international fulfillment complexity where orders ship from diverse global locations to US/Puerto Rico customers, creating routing challenges that likely drive late deliveries."
+    "Dataset has 180,519 rows \u00d7 53 columns. Target auto-detected as 'late_delivery_risk'."
   ],
   "hypothesis_insights": [
-    "The business should allocate more days for shipment scheduling (3-4 days) to significantly reduce late delivery risk from over 95% to under 40%, improving customer satisfaction and reducing logistics costs associated with expedited shipping.",
-    "The business should prioritize reducing shipping delays beyond scheduled times, as even a single day of delay results in over 95% likelihood of being flagged as a late delivery risk.",
-    "The business should prioritize orders paid via TRANSFER for on-time delivery resources, or investigate why PAYMENT, DEBIT, and CASH orders face 17% higher late delivery rates to address operational bottlenecks in those payment channels.",
-    "The business should prioritize improving fulfillment processes for Pet Shop and Book Shop departments, potentially by allocating more resources, adjusting inventory management, or partnering with more reliable suppliers for these categories.",
-    "The business should prioritize improving logistics and delivery processes for high-risk categories like Golf Bags & Carts, Lacrosse, and Pet Supplies to reduce their significantly elevated late delivery rates.",
-    "The business should consider prioritizing high-value orders in their logistics operations to maintain service quality for the most profitable customers, though the difference is relatively small (0.4 percentage points)."
+    "The business should either avoid offering 1-2 day shipping options or invest heavily in expedited logistics capabilities, as current operations cannot reliably meet tight delivery windows with over 95% of 1-day shipments arriving late.",
+    "The business should prioritize reducing shipping delays as even a 1-day delay is strongly associated with late delivery risk, suggesting tight scheduling or the need for buffer time in delivery promises.",
+    "The business should prioritize resource allocation and handling procedures for PAYMENT, DEBIT, and CASH transactions which have 15-18% higher late delivery rates compared to TRANSFER transactions, potentially indicating these types require more complex processing or face operational bottlenecks.",
+    "The business should prioritize improving logistics and inventory management for high-risk categories like Golf Bags & Carts, Lacrosse, and Pet Supplies to reduce late deliveries and improve customer satisfaction.",
+    "The business should investigate operational processes in Pet Shop and Book Shop departments to identify bottlenecks and implement best practices from better-performing departments like Footwear and Discs Shop to reduce overall late delivery risk.",
+    "The business should consider implementing priority fulfillment processes for higher-value orders while investigating whether resource constraints are causing lower-benefit orders to be deprioritized, leading to increased delivery delays."
   ],
   "true_hypotheses": [
-    "Orders with lower days_for_shipment_scheduled tend to have higher late_delivery_risk",
-    "Orders where days_for_shipping_real exceeds days_for_shipment_scheduled tend to have higher late_delivery_risk",
-    "Orders with specific type values tend to have higher late_delivery_risk",
-    "Orders from certain department_name categories tend to have higher late_delivery_risk",
-    "Orders from specific category_name groups tend to have higher late_delivery_risk",
-    "Orders with lower benefit_per_order tend to have higher late_delivery_risk due to lower priority handling"
+    "Orders with lower scheduled shipping days (days_for_shipment_scheduled) tend to have higher late_delivery_risk due to tighter delivery windows",
+    "Orders where actual shipping days exceed scheduled days tend to have higher late_delivery_risk",
+    "Orders of specific transaction types (type) tend to have higher late_delivery_risk due to different handling requirements",
+    "Orders in specific product categories (category_name) tend to have higher late_delivery_risk due to specialized handling or inventory issues",
+    "Orders from specific departments (department_name) tend to have higher late_delivery_risk due to operational efficiency differences",
+    "Orders with lower benefit per order (benefit_per_order) tend to have slightly higher late_delivery_risk due to lower prioritization in fulfillment"
   ]
 }

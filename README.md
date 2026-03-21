@@ -7,13 +7,13 @@
 [![Optuna](https://img.shields.io/badge/Optuna-Hyperparameter%20Search-4C8BF5?style=flat)](https://optuna.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> ## Executive Summary
+> # Executive Summary
 
-**Business Problem**: DataCo Global faces significant delivery performance challenges, with 55% of their 180,000+ orders at risk of late delivery. Operations managers need early warning signals to proactively expedite at-risk shipments, optimize warehouse routing and carrier selection, and communicate delays to customers before they occur.
+Supply chain delays cost businesses revenue and customer trust. This project addresses late delivery risk in DataCo Global's operations by building a predictive model that identifies at-risk shipments before they fail. With 180,000+ orders analyzed, the solution enables operations managers to proactively reroute shipments, select faster carriers, and communicate delays to customers—turning reactive firefighting into strategic planning.
 
-**Solution Approach**: This project implements an AI-powered data science pipeline that automatically identifies the prediction target, validates business hypotheses, and competes multiple machine learning models. The multi-agent system discovered critical insights including systematic under-scheduling (actual shipping averages 0.57 days longer than planned) and confirmed that tight scheduling windows and schedule overruns are strong predictors of delivery risk.
+The data science pipeline leverages multi-agent AI automation to streamline end-to-end model development. It automatically identifies the target variable (`late_delivery_risk`), validates business hypotheses through exploratory analysis, and competes multiple machine learning algorithms to select the best performer. This approach reduces manual effort while ensuring rigorous, hypothesis-driven insights guide model development.
 
-**Results & Impact**: The XGBoost classifier achieved **97.45% accuracy** on held-out test data, enabling reliable early prediction of late deliveries. Key business takeaway: the chronic gap between scheduled and actual shipping times reveals an opportunity to recalibrate scheduling algorithms, potentially reducing late deliveries by 20-30%. The model empowers operations teams to flag high-risk orders at booking time and allocate premium carriers or expedited handling where it matters most.
+**The XGBoost model achieves 97.45% accuracy**, reliably flagging late deliveries before they occur. Analysis confirms two critical levers: orders with tight delivery windows (low scheduled shipping days) and those where actual shipping exceeds planned timelines face significantly higher risk. **Actionable recommendation**: prioritize expedited handling for orders with ≤2 scheduled shipping days and implement real-time alerts when shipments fall behind schedule during transit.
 
 ---
 
@@ -43,21 +43,17 @@
 | **Problem type** | Classification |
 | **Best model** | XGBoost |
 | **Accuracy (test set)** | **97.45%** |
-| **Optimized parameters** | `{"n_estimators": 100, "learning_rate": 0.173317518491949, "max_depth": 5, "subsample": 0.5299822827756915}` |
+| **Optimized parameters** | `{"n_estimators": 104, "learning_rate": 0.018507754954953916, "max_depth": 7, "subsample": 0.7464645250826458}` |
 | **CV strategy** | 2-fold StratifiedKFold + Optuna (3 trials) + Stacking |
-| **Features used** | 24 (Boruta-selected from 13 engineered) |
-| **Dataset** | 180,519 rows × 53 columns → 180,519 rows × 33 ML-ready |
+| **Features used** | 23 (Boruta-selected from 13 engineered) |
+| **Dataset** | 180,519 rows × 53 columns → 180,519 rows × 32 ML-ready |
 | **Predictions generated** | 180519 rows in `df4_predictions.parquet` |
 
 ### AI-Identified Target Justification
-> *The column 'late_delivery_risk' is clearly the target as it is binary (0/1), represents the business outcome (late vs on-time delivery), aligns with the stated goal of predicting delivery risk, and has a balanced distribution (mean=0.55, suggesting ~55% late deliveries). The 'delivery_status' column appears to be a post-facto label derived from this target.*
+> *Auto-selected fallback: 'late_delivery_risk' chosen from actual dataset columns.*
 
 ### Top Dataset Insights (by Claude)
-1. TARGET IMBALANCE: 54.8% of orders are at risk of late delivery, indicating a significant operational challenge. This near-balanced distribution is good for modeling but suggests systemic delays.
-2. LEAKAGE RISK: 'delivery_status' is a categorical version of the target and 'days_for_shipping_real' represents actual delivery time (known only post-delivery). These must be excluded to prevent leakage. The scheduled vs real shipping days comparison is key.
-3. SHIPPING TIME GAP: Mean real shipping time (3.50 days) exceeds scheduled time (2.93 days) by 0.57 days on average, suggesting chronic under-scheduling. This delta could be a powerful predictor of late delivery risk.
-4. PROFIT ANOMALY: 'benefit_per_order' has extreme negative skew (-4.74) with losses up to -$4,275 and strong negative outliers, suggesting some orders are deeply unprofitable. This may correlate with rushed/expedited shipments or problematic product categories.
-5. GEOGRAPHIC CONCENTRATION: Only 2 customer countries but 164 order countries, with 5 markets and 23 regions. This suggests international fulfillment complexity where orders ship from diverse global locations to US/Puerto Rico customers, creating routing challenges that likely drive late deliveries.
+1. Dataset has 180,519 rows × 53 columns. Target auto-detected as 'late_delivery_risk'.
 
 ---
 
@@ -118,7 +114,7 @@ Kaggle Dataset
 |---|---|
 | **Source** | [shashwatwork/dataco-smart-supply-chain-for-big-data-analysis](https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis) |
 | **Raw shape** | 180,519 rows × 53 columns |
-| **ML-ready shape** | 180,519 rows × 33 columns |
+| **ML-ready shape** | 180,519 rows × 32 columns |
 | **Target** | `late_delivery_risk` (classification) |
 | **Business context** | Supply chain operations dataset from DataCo Global with 180k orders.
 Goal: predict Late_delivery_risk (1 = late, 0 = on time) to help
@@ -176,14 +172,14 @@ AI analysis chart (Claude-generated code):
 ### AI-generated features
 Claude proposed the following custom features based on the actual correlation structure of this dataset:
 - `shipping_delay`
-- `scheduled_to_actual_ratio`
-- `sales_per_scheduled_day`
-- `benefit_to_sales_ratio`
-- `aggressive_schedule`
+- `shipping_efficiency`
+- `shipping_time_interaction`
+- `revenue_efficiency`
+- `shipping_pressure`
 
 ### Boruta feature selection
-After engineering, Boruta (Random Forest shadow features) selected **24 features** from 13 total engineered features.
-Selected: `days_for_shipping_real, days_for_shipment_scheduled, feat_ratio, feat_sum, feat_product, feat_diff, log_sales_per_customer, feat_interact, sq_days_for_shipping_real, sq_days_for_shipment_scheduled...`
+After engineering, Boruta (Random Forest shadow features) selected **23 features** from 13 total engineered features.
+Selected: `days_for_shipping_real, days_for_shipment_scheduled, feat_ratio, feat_sum, feat_product, feat_diff, feat_interact, sq_days_for_shipping_real, sq_days_for_shipment_scheduled, shipping_delay...`
 
 → Full log: [feature_strategy.json](feature_strategy.json)
 
@@ -197,16 +193,16 @@ Claude generated 10 business hypotheses about `late_delivery_risk`, tested each 
 
 | ID | Verdict | Hypothesis | Business Insight |
 |----|---------|-----------|-----------------|
-| H1 | ❌ **FALSE** | Orders with higher days_for_shipping_real tend to have higher late_delivery_risk | The business should investigate why 3-4 day shipping windows have dramatically lower late  |
-| H2 | ✅ **TRUE** | Orders with lower days_for_shipment_scheduled tend to have higher late_delivery_risk | The business should allocate more days for shipment scheduling (3-4 days) to significantly |
-| H3 | ✅ **TRUE** | Orders where days_for_shipping_real exceeds days_for_shipment_scheduled tend to have highe | The business should prioritize reducing shipping delays beyond scheduled times, as even a  |
-| H4 | ✅ **TRUE** | Orders with specific type values tend to have higher late_delivery_risk | The business should prioritize orders paid via TRANSFER for on-time delivery resources, or |
-| H5 | ⚪ **INCONCLUSIVE** | Orders from certain markets tend to have higher late_delivery_risk | Late delivery risk is consistently around 54-55% across all markets, suggesting that deliv |
-| H6 | ❌ **FALSE** | Orders from specific customer_segment categories tend to have higher late_delivery_risk | Late delivery risk is uniformly distributed across customer segments at approximately 55%, |
-| H7 | ✅ **TRUE** | Orders from certain department_name categories tend to have higher late_delivery_risk | The business should prioritize improving fulfillment processes for Pet Shop and Book Shop  |
-| H8 | ✅ **TRUE** | Orders from specific category_name groups tend to have higher late_delivery_risk | The business should prioritize improving logistics and delivery processes for high-risk ca |
-| H9 | ⚪ **INCONCLUSIVE** | Orders with shipping routes between different order_country and customer_country tend to h | Without the baseline late delivery risk for domestic orders, we cannot yet determine if cr |
-| H10 | ✅ **TRUE** | Orders with lower benefit_per_order tend to have higher late_delivery_risk due to lower pr | The business should consider prioritizing high-value orders in their logistics operations  |
+| H1 | ❌ **FALSE** | Orders with higher actual shipping days (days_for_shipping_real) tend to have higher late_ | The business should focus on keeping shipping times at 3-4 days maximum, as delays beyond  |
+| H2 | ✅ **TRUE** | Orders with lower scheduled shipping days (days_for_shipment_scheduled) tend to have highe | The business should either avoid offering 1-2 day shipping options or invest heavily in ex |
+| H3 | ✅ **TRUE** | Orders where actual shipping days exceed scheduled days tend to have higher late_delivery_ | The business should prioritize reducing shipping delays as even a 1-day delay is strongly  |
+| H4 | ✅ **TRUE** | Orders of specific transaction types (type) tend to have higher late_delivery_risk due to  | The business should prioritize resource allocation and handling procedures for PAYMENT, DE |
+| H5 | ⚪ **INCONCLUSIVE** | Orders from specific markets (market) tend to have higher late_delivery_risk due to geogra | The consistently high late delivery risk across all markets (54-55%) indicates a systemic  |
+| H6 | ✅ **TRUE** | Orders in specific product categories (category_name) tend to have higher late_delivery_ri | The business should prioritize improving logistics and inventory management for high-risk  |
+| H7 | ❌ **FALSE** | Orders from specific customer segments (customer_segment) tend to have higher late_deliver | Since all customer segments face similar late delivery risks, the business should focus on |
+| H8 | ✅ **TRUE** | Orders from specific departments (department_name) tend to have higher late_delivery_risk  | The business should investigate operational processes in Pet Shop and Book Shop department |
+| H9 | ⚪ **INCONCLUSIVE** | Orders shipped to specific countries (order_country) tend to have higher late_delivery_ris | The business should collect more data from these countries before making shipping policy d |
+| H10 | ✅ **TRUE** | Orders with lower benefit per order (benefit_per_order) tend to have slightly higher late_ | The business should consider implementing priority fulfillment processes for higher-value  |
 
 
 ![Hypothesis Validation](hypothesis_validation.png)
@@ -234,7 +230,7 @@ Claude generated 10 business hypotheses about `late_delivery_risk`, tested each 
 ### Result
 **Winner: `XGBoost`** · Accuracy on test set: **97.45%**
 
-Best Optuna parameters: `{"n_estimators": 100, "learning_rate": 0.173317518491949, "max_depth": 5, "subsample": 0.5299822827756915}`
+Best Optuna parameters: `{"n_estimators": 104, "learning_rate": 0.018507754954953916, "max_depth": 7, "subsample": 0.7464645250826458}`
 
 ![Model Comparison](model_comparison.png)
 ![Feature Importance](feature_importance.png)
@@ -326,7 +322,7 @@ nohup python telegram_bot.py &
 | ✅ | `target_config.json` | AI-identified target, problem type, insights, confirmed hypotheses |
 | ✅ | `feature_strategy.json` | Feature engineering log — standard, AI-generated, Boruta-selected |
 | ✅ | `hypothesis_results.json` | Full hypothesis results with verdicts and business insights |
-| ✅ | `README.md` | This file |
+| ⬜ | `README.md` | This file |
 
 
 ---
@@ -406,17 +402,17 @@ jupyter notebook analysis_notebook.ipynb
 
 ## Limitations & Next Steps
 
-**Current Limitations:**
-- **Limited hyperparameter exploration**: Only 3 Optuna trials severely constrains optimization space for XGBoost's 10+ key parameters; increase to minimum 100-200 trials with proper pruning for robust tuning
-- **No model interpretability**: Absence of SHAP values prevents stakeholder trust and regulatory compliance; cannot explain individual predictions or identify potential bias in late delivery risk assessment
-- **Unvalidated probability calibration**: 97.45% accuracy doesn't guarantee reliable probability estimates needed for business decision thresholds; model may be overconfident without calibration validation
+**Limitations:**
+- **Class imbalance not assessed** – 97.45% accuracy may be misleading if the dataset is heavily skewed toward one class; precision, recall, and F1-score by class are needed to validate real performance
+- **Limited hyperparameter search** – Only 3 Optuna trials is insufficient for proper optimization; XGBoost has 10+ critical hyperparameters that require 50-100+ trials for robust tuning
+- **No model interpretability** – Lack of SHAP values means stakeholders cannot understand *why* deliveries are flagged as high-risk, limiting trust and actionability for logistics teams
 
-**Pre-Production Requirements:**
-- **Class imbalance investigation**: High accuracy may mask poor minority class performance; verify precision/recall for actual late deliveries and consider focal loss or class weights if F1-score is significantly lower
-- **Temporal validation gap**: Implement time-based train/test split with 2-3 month hold-out period to test model degradation and ensure predictions work on truly future data
+**Before Production:**
+- **Implement probability calibration** – XGBoost outputs are not well-calibrated by default; use Platt scaling or isotonic regression to ensure predicted probabilities accurately reflect true risk levels
+- **Add experiment tracking (MLflow/Weights & Biases)** – Currently no reproducibility of the Boruta selection process, Optuna trials, or model versions; essential for audit trails and rollback capability
 
 **Next Steps:**
-- **Implement MLflow experiment tracking**: Track Boruta-selected features, Optuna hyperparameters, and performance metrics across model versions to enable reproducibility and prevent silent performance degradation in production
+- **Validate on temporal holdout set** – Test on deliveries from future time periods (not random split) to confirm model performance under real-world deployment conditions where data distribution may drift
 
 ---
 

@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Executive Business Dashboard</title>
+    <title>Late Delivery Risk — Business Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -16,7 +18,7 @@
             background: #0f1117;
             color: #e2e8f0;
             line-height: 1.6;
-            padding: 2rem;
+            padding: 2rem 1rem;
         }
         .container {
             max-width: 1200px;
@@ -24,14 +26,13 @@
         }
         .header {
             margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid #2d3748;
+            text-align: center;
         }
         .header h1 {
             font-size: 2rem;
             font-weight: 700;
+            color: #ffffff;
             margin-bottom: 0.5rem;
-            color: #f1f5f9;
         }
         .header p {
             color: #94a3b8;
@@ -41,11 +42,11 @@
         .badge {
             display: inline-block;
             background: #1e2130;
-            padding: 0.4rem 0.9rem;
+            color: #4f8ef7;
+            padding: 0.4rem 0.8rem;
             border-radius: 6px;
             font-size: 0.85rem;
-            color: #4f8ef7;
-            border: 1px solid #2d3748;
+            font-weight: 600;
         }
         .kpi-grid {
             display: grid;
@@ -55,9 +56,9 @@
         }
         .kpi-card {
             background: #1e2130;
+            border-radius: 12px;
             padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid #2d3748;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
         .kpi-card h3 {
             font-size: 0.85rem;
@@ -65,30 +66,25 @@
             color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
         }
         .kpi-card .value {
             font-size: 2rem;
             font-weight: 700;
-            color: #f1f5f9;
+            color: #ffffff;
         }
-        .chart-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .chart-card {
+        .section {
             background: #1e2130;
+            border-radius: 12px;
             padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid #2d3748;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
-        .chart-card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #f1f5f9;
+        .section h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1.25rem;
         }
         .chart-container {
             height: 280px;
@@ -98,13 +94,11 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 2rem;
         }
         .insight-card {
-            background: #1e2130;
-            padding: 1.5rem;
+            background: #262938;
             border-radius: 8px;
-            border: 1px solid #2d3748;
+            padding: 1.25rem;
             border-left: 4px solid;
         }
         .insight-card.accent { border-left-color: #4f8ef7; }
@@ -114,90 +108,82 @@
         .insight-card h3 {
             font-size: 1rem;
             font-weight: 600;
-            margin-bottom: 0.75rem;
-            color: #f1f5f9;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
         }
         .insight-card p {
             color: #94a3b8;
             font-size: 0.9rem;
         }
         .table-container {
-            background: #1e2130;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid #2d3748;
-            margin-bottom: 2rem;
             overflow-x: auto;
-        }
-        .table-container h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #f1f5f9;
         }
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        th {
-            background: #0f1117;
-            padding: 0.75rem;
-            text-align: left;
+        table th {
+            background: #262938;
+            color: #ffffff;
             font-weight: 600;
+            text-align: left;
+            padding: 0.75rem;
             font-size: 0.85rem;
-            color: #f1f5f9;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        td {
+        table td {
             padding: 0.75rem;
+            border-bottom: 1px solid #2d3348;
             font-size: 0.9rem;
-            color: #cbd5e1;
         }
-        tr:nth-child(even) {
-            background: #161825;
+        table tr:nth-child(even) {
+            background: #1a1d2b;
+        }
+        table tr:hover {
+            background: #262938;
         }
         .verdict-badge {
             display: inline-block;
-            padding: 0.25rem 0.75rem;
+            padding: 0.25rem 0.6rem;
             border-radius: 12px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
+            text-transform: uppercase;
         }
         .verdict-badge.true {
-            background: #22c55e;
-            color: #0f1117;
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
         }
         .verdict-badge.false {
-            background: #ef4444;
-            color: #fff;
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
         }
         .verdict-badge.inconclusive {
-            background: #64748b;
-            color: #fff;
+            background: rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
         }
         .footer {
             text-align: center;
-            padding: 2rem 0;
             color: #64748b;
             font-size: 0.85rem;
-            border-top: 1px solid #2d3748;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #2d3348;
         }
         @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
             .header h1 {
                 font-size: 1.5rem;
             }
             .kpi-grid {
                 grid-template-columns: 1fr;
-            }
-            .chart-row {
-                grid-template-columns: 1fr;
+                gap: 1rem;
             }
             .insights-grid {
                 grid-template-columns: 1fr;
+            }
+            table {
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -206,35 +192,71 @@
     <div class="container">
         <div class="header">
             <h1 id="dashboardTitle"></h1>
-            <p id="dashboardContext"></p>
+            <p id="dashboardSubtitle"></p>
             <span class="badge" id="modelBadge"></span>
         </div>
 
-        <div class="kpi-grid" id="kpiGrid"></div>
-
-        <div class="chart-row">
-            <div class="chart-card">
-                <h2>Prediction Distribution</h2>
-                <div class="chart-container">
-                    <canvas id="predDistChart"></canvas>
-                </div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <h3>Total Records</h3>
+                <div class="value" id="totalRecords"></div>
             </div>
-            <div class="chart-card">
-                <h2>Feature Importance</h2>
-                <div class="chart-container">
-                    <canvas id="featImpChart"></canvas>
-                </div>
+            <div class="kpi-card">
+                <h3>Model Accuracy</h3>
+                <div class="value" id="modelAccuracy"></div>
+            </div>
+            <div class="kpi-card">
+                <h3>Avg Confidence</h3>
+                <div class="value" id="avgConfidence"></div>
+            </div>
+            <div class="kpi-card">
+                <h3>True Hypotheses</h3>
+                <div class="value" id="trueHypotheses"></div>
             </div>
         </div>
 
-        <div class="insights-grid" id="insightsGrid"></div>
+        <div class="section">
+            <h2>Prediction Distribution</h2>
+            <div class="chart-container">
+                <canvas id="predDistChart"></canvas>
+            </div>
+        </div>
 
-        <div class="table-container">
+        <div class="section">
+            <h2>Feature Importance</h2>
+            <div class="chart-container">
+                <canvas id="featImpChart"></canvas>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Business Insights</h2>
+            <div class="insights-grid" id="insightsGrid"></div>
+        </div>
+
+        <div class="section">
             <h2>Hypothesis Validation</h2>
-            <table id="hypothesisTable"></table>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Verdict</th>
+                            <th>Hypothesis</th>
+                            <th>Business Insight</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hypothesesTable"></tbody>
+                </table>
+            </div>
         </div>
 
-        <div id="categoryBreakdown"></div>
+        <div class="section" id="catBreakdownSection" style="display:none;">
+            <h2 id="catBreakdownTitle">Category Breakdown</h2>
+            <div class="chart-container">
+                <canvas id="catBreakdownChart"></canvas>
+            </div>
+        </div>
 
         <div class="footer">
             <p>Generated by Auto Data Scientist v7 · CrewAI + Claude 3.5 Sonnet</p>
@@ -245,117 +267,118 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         const DATA = {
-            "title": "Late Delivery Risk — Business Dashboard",
-            "context": "Supply chain operations dataset from DataCo Global with 180k orders.\nGoal: predict Late_delivery_risk (1 = late, 0 = on time) to help\noperations managers proactively flag at-risk shipments and prioritize\nexpedited handling. Key decisions: warehouse routing, carrier selection,\ncustomer communication.",
-            "model_name": "XGBoost",
-            "metric_label": "Accuracy",
-            "metric_value": 97.45,
-            "total_rows": 180519,
-            "avg_conf": 97.6,
-            "pred_dist": {
-                "1.0": 103400,
-                "0.0": 77119
-            },
-            "feat_imp": {
-                "feat_ratio": 0.9904000163078308,
-                "days_for_shipment_scheduled": 0.0013000000035390258,
-                "aggressive_schedule": 0.0012000000569969416,
-                "sales_per_scheduled_day": 0.0012000000569969416,
-                "feat_interact": 0.0010999999940395355,
-                "log_sales_per_customer": 0.0010999999940395355,
-                "feat_diff": 0.0010000000474974513,
-                "days_for_shipping_real": 0.0010000000474974513
-            },
-            "hypotheses": [
-                {
-                    "id": "H1",
-                    "verdict": "FALSE",
-                    "statement": "Orders with higher days_for_shipping_real tend to have higher late_delivery_risk",
-                    "insight": "The business should investigate why 3-4 day shipping windows have dramatically lower late delivery risk compared to both"
-                },
-                {
-                    "id": "H2",
-                    "verdict": "TRUE",
-                    "statement": "Orders with lower days_for_shipment_scheduled tend to have higher late_delivery_risk",
-                    "insight": "The business should allocate more days for shipment scheduling (3-4 days) to significantly reduce late delivery risk fro"
-                },
-                {
-                    "id": "H3",
-                    "verdict": "TRUE",
-                    "statement": "Orders where days_for_shipping_real exceeds days_for_shipment_scheduled tend to have higher late_del",
-                    "insight": "The business should prioritize reducing shipping delays beyond scheduled times, as even a single day of delay results in"
-                },
-                {
-                    "id": "H4",
-                    "verdict": "TRUE",
-                    "statement": "Orders with specific type values tend to have higher late_delivery_risk",
-                    "insight": "The business should prioritize orders paid via TRANSFER for on-time delivery resources, or investigate why PAYMENT, DEBI"
-                },
-                {
-                    "id": "H5",
-                    "verdict": "INCONCLUSIVE",
-                    "statement": "Orders from certain markets tend to have higher late_delivery_risk",
-                    "insight": "Late delivery risk is consistently around 54-55% across all markets, suggesting that delivery performance issues are sys"
-                },
-                {
-                    "id": "H6",
-                    "verdict": "FALSE",
-                    "statement": "Orders from specific customer_segment categories tend to have higher late_delivery_risk",
-                    "insight": "Late delivery risk is uniformly distributed across customer segments at approximately 55%, suggesting delivery issues ar"
-                },
-                {
-                    "id": "H7",
-                    "verdict": "TRUE",
-                    "statement": "Orders from certain department_name categories tend to have higher late_delivery_risk",
-                    "insight": "The business should prioritize improving fulfillment processes for Pet Shop and Book Shop departments, potentially by al"
-                },
-                {
-                    "id": "H8",
-                    "verdict": "TRUE",
-                    "statement": "Orders from specific category_name groups tend to have higher late_delivery_risk",
-                    "insight": "The business should prioritize improving logistics and delivery processes for high-risk categories like Golf Bags & Cart"
-                },
-                {
-                    "id": "H9",
-                    "verdict": "INCONCLUSIVE",
-                    "statement": "Orders with shipping routes between different order_country and customer_country tend to have higher",
-                    "insight": "Without the baseline late delivery risk for domestic orders, we cannot yet determine if cross-border shipping requires a"
-                },
-                {
-                    "id": "H10",
-                    "verdict": "TRUE",
-                    "statement": "Orders with lower benefit_per_order tend to have higher late_delivery_risk due to lower priority han",
-                    "insight": "The business should consider prioritizing high-value orders in their logistics operations to maintain service quality fo"
-                }
-            ],
-            "insights": [
-                {
-                    "title": "Model Performance",
-                    "body": "TITLE: Late Deliveries Plague Half Our Orders\n\nBODY: Our model reveals that 54.8% of all shipments are currently at risk of late delivery—a systemic problem impacting customer satisfaction and operational costs. The XGBoost classifier achieves 97.5% accuracy in predicting these delays, enabling oper"
-                }
-            ],
-            "cat_breakdown": {
-                "column": "type",
-                "data": {
-                    "CASH": 56.6,
-                    "DEBIT": 57.2,
-                    "PAYMENT": 57.5,
-                    "TRANSFER": 57.4
-                }
-            },
-            "true_hyp_count": 6,
-            "false_hyp_count": 2,
-            "inc_hyp_count": 2
-        };
+  "title": "Late Delivery Risk \u2014 Business Dashboard",
+  "context": "Supply chain operations dataset from DataCo Global with 180k orders.\nGoal: predict Late_delivery_risk (1 = late, 0 = on time) to help\noperations managers proactively flag at-risk shipments and prioritize\nexpedited handling. Key decisions: warehouse routing, carrier selection,\ncustomer communication.",
+  "model_name": "XGBoost",
+  "metric_label": "Accuracy",
+  "metric_value": 97.45,
+  "total_rows": 180519,
+  "avg_conf": 90.8,
+  "pred_dist": {
+    "1.0": 103400,
+    "0.0": 77119
+  },
+  "feat_imp": {
+    "feat_ratio": 0.9997000098228455,
+    "days_for_shipment_scheduled": 9.999999747378752e-05,
+    "shipping_efficiency": 9.999999747378752e-05,
+    "feat_interact": 0.0,
+    "days_for_shipping_real": 0.0,
+    "shipping_time_interaction": 0.0,
+    "feat_sum": 0.0,
+    "feat_diff": 0.0
+  },
+  "hypotheses": [
+    {
+      "id": "H1",
+      "verdict": "FALSE",
+      "statement": "Orders with higher actual shipping days (days_for_shipping_real) tend to have higher late_delivery_r",
+      "insight": "The business should focus on keeping shipping times at 3-4 days maximum, as delays beyond this threshold dramatically in"
+    },
+    {
+      "id": "H2",
+      "verdict": "TRUE",
+      "statement": "Orders with lower scheduled shipping days (days_for_shipment_scheduled) tend to have higher late_del",
+      "insight": "The business should either avoid offering 1-2 day shipping options or invest heavily in expedited logistics capabilities"
+    },
+    {
+      "id": "H3",
+      "verdict": "TRUE",
+      "statement": "Orders where actual shipping days exceed scheduled days tend to have higher late_delivery_risk",
+      "insight": "The business should prioritize reducing shipping delays as even a 1-day delay is strongly associated with late delivery "
+    },
+    {
+      "id": "H4",
+      "verdict": "TRUE",
+      "statement": "Orders of specific transaction types (type) tend to have higher late_delivery_risk due to different ",
+      "insight": "The business should prioritize resource allocation and handling procedures for PAYMENT, DEBIT, and CASH transactions whi"
+    },
+    {
+      "id": "H5",
+      "verdict": "INCONCLUSIVE",
+      "statement": "Orders from specific markets (market) tend to have higher late_delivery_risk due to geographical and",
+      "insight": "The consistently high late delivery risk across all markets (54-55%) indicates a systemic operational issue rather than "
+    },
+    {
+      "id": "H6",
+      "verdict": "TRUE",
+      "statement": "Orders in specific product categories (category_name) tend to have higher late_delivery_risk due to ",
+      "insight": "The business should prioritize improving logistics and inventory management for high-risk categories like Golf Bags & Ca"
+    },
+    {
+      "id": "H7",
+      "verdict": "FALSE",
+      "statement": "Orders from specific customer segments (customer_segment) tend to have higher late_delivery_risk due",
+      "insight": "Since all customer segments face similar late delivery risks, the business should focus on systemic operational improvem"
+    },
+    {
+      "id": "H8",
+      "verdict": "TRUE",
+      "statement": "Orders from specific departments (department_name) tend to have higher late_delivery_risk due to ope",
+      "insight": "The business should investigate operational processes in Pet Shop and Book Shop departments to identify bottlenecks and "
+    },
+    {
+      "id": "H9",
+      "verdict": "INCONCLUSIVE",
+      "statement": "Orders shipped to specific countries (order_country) tend to have higher late_delivery_risk due to c",
+      "insight": "The business should collect more data from these countries before making shipping policy decisions, as current patterns "
+    },
+    {
+      "id": "H10",
+      "verdict": "TRUE",
+      "statement": "Orders with lower benefit per order (benefit_per_order) tend to have slightly higher late_delivery_r",
+      "insight": "The business should consider implementing priority fulfillment processes for higher-value orders while investigating whe"
+    }
+  ],
+  "insights": [
+    {
+      "title": "Model Performance",
+      "body": "TITLE: Late Deliveries Predicted with Precision\n\nBODY: Our XGBoost model achieves 97% accuracy in predicting which of 180,000+ shipments will arrive late, with an average confidence of 91%. This enables operations teams to proactively flag at-risk orders before they become customer service problems."
+    }
+  ],
+  "cat_breakdown": {
+    "column": "type",
+    "data": {
+      "CASH": 56.6,
+      "DEBIT": 57.2,
+      "PAYMENT": 57.5,
+      "TRANSFER": 57.4
+    }
+  },
+  "true_hyp_count": 6,
+  "false_hyp_count": 2,
+  "inc_hyp_count": 2
+};
 
-        // Set Chart.js defaults for dark theme
+        // Set Chart.js dark theme
         Chart.defaults.color = '#94a3b8';
 
-        // Helper functions
+        // Helper: format number with commas
         function formatNumber(num) {
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
+        // Helper: truncate text
         function truncate(str, maxLen) {
             if (str.length <= maxLen) return str;
             return str.substring(0, maxLen) + '...';
@@ -363,32 +386,33 @@
 
         // Populate header
         document.getElementById('dashboardTitle').textContent = DATA.title;
-        document.getElementById('dashboardContext').textContent = truncate(DATA.context.replace(/\n/g, ' '), 120);
+        const contextFirstLine = DATA.context.split('\n')[0];
+        document.getElementById('dashboardSubtitle').textContent = truncate(contextFirstLine, 120);
         document.getElementById('modelBadge').textContent = `${DATA.model_name} · ${DATA.metric_label} ${DATA.metric_value}%`;
 
-        // Populate KPI cards
-        const kpiData = [
-            { label: 'Total Records', value: formatNumber(DATA.total_rows) },
-            { label: 'Model Accuracy', value: DATA.metric_value + '%' },
-            { label: 'Avg Confidence', value: DATA.avg_conf ? DATA.avg_conf + '%' : 'N/A' },
-            { label: 'True Hypotheses', value: `${DATA.true_hyp_count}/${DATA.hypotheses.length}` }
-        ];
-
-        const kpiGrid = document.getElementById('kpiGrid');
-        kpiData.forEach(kpi => {
-            const card = document.createElement('div');
-            card.className = 'kpi-card';
-            card.innerHTML = `<h3>${kpi.label}</h3><div class="value">${kpi.value}</div>`;
-            kpiGrid.appendChild(card);
-        });
+        // Populate KPIs
+        document.getElementById('totalRecords').textContent = formatNumber(DATA.total_rows);
+        document.getElementById('modelAccuracy').textContent = `${DATA.metric_value}%`;
+        document.getElementById('avgConfidence').textContent = DATA.avg_conf ? `${DATA.avg_conf}%` : 'N/A';
+        const totalHyp = DATA.hypotheses.length;
+        document.getElementById('trueHypotheses').textContent = `${DATA.true_hyp_count}/${totalHyp}`;
 
         // Prediction Distribution Chart
-        const predDistCtx = document.getElementById('predDistChart').getContext('2d');
-        const predLabels = Object.keys(DATA.pred_dist).map(k => k === '1.0' ? 'Late' : 'On Time');
-        const predValues = Object.values(DATA.pred_dist);
-        const predColors = Object.keys(DATA.pred_dist).map(k => k === '1.0' ? '#ef4444' : '#22c55e');
-
-        new Chart(predDistCtx, {
+        const predLabels = [];
+        const predValues = [];
+        const predColors = [];
+        for (const [key, value] of Object.entries(DATA.pred_dist)) {
+            if (key === '0.0' || key === '0') {
+                predLabels.push('On Time');
+                predColors.push('#22c55e');
+            } else {
+                predLabels.push('Late');
+                predColors.push('#ef4444');
+            }
+            predValues.push(value);
+        }
+        const ctxPred = document.getElementById('predDistChart').getContext('2d');
+        new Chart(ctxPred, {
             type: 'doughnut',
             data: {
                 labels: predLabels,
@@ -406,7 +430,9 @@
                         position: 'bottom',
                         labels: {
                             padding: 15,
-                            font: { size: 12 }
+                            font: {
+                                size: 12
+                            }
                         }
                     }
                 }
@@ -414,17 +440,16 @@
         });
 
         // Feature Importance Chart
-        const featImpCtx = document.getElementById('featImpChart').getContext('2d');
         const featEntries = Object.entries(DATA.feat_imp).sort((a, b) => b[1] - a[1]);
         const featLabels = featEntries.map(e => e[0]);
         const featValues = featEntries.map(e => e[1]);
-
-        new Chart(featImpCtx, {
+        const ctxFeat = document.getElementById('featImpChart').getContext('2d');
+        new Chart(ctxFeat, {
             type: 'bar',
             data: {
                 labels: featLabels,
                 datasets: [{
-                    label: 'Importance',
+                    label: 'Importance Score',
                     data: featValues,
                     backgroundColor: '#4f8ef7',
                     borderWidth: 0
@@ -435,18 +460,25 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
+                    legend: {
+                        display: false
+                    }
                 },
                 scales: {
                     x: {
                         title: {
                             display: true,
-                            text: 'Importance Score'
+                            text: 'Importance Score',
+                            color: '#94a3b8'
                         },
-                        grid: { color: '#2d3748' }
+                        grid: {
+                            color: '#2d3348'
+                        }
                     },
                     y: {
-                        grid: { display: false }
+                        grid: {
+                            display: false
+                        }
                     }
                 }
             }
@@ -454,71 +486,42 @@
 
         // Business Insights
         const insightsGrid = document.getElementById('insightsGrid');
-        const insightClasses = ['accent', 'success', 'warning', 'danger'];
-        const insightIcons = ['📊', '🎯', '⚡', '💡'];
-
+        const icons = ['📊', '🎯', '⚡', '💡'];
+        const styles = ['accent', 'success', 'warning', 'danger'];
         DATA.insights.forEach((insight, idx) => {
             const card = document.createElement('div');
-            card.className = `insight-card ${insightClasses[idx % insightClasses.length]}`;
-            
-            const title = insight.body.split('\n\n')[0].replace('TITLE: ', '');
-            const body = insight.body.split('\n\n')[1] ? insight.body.split('\n\n')[1].replace('BODY: ', '') : '';
-            
+            card.className = `insight-card ${styles[idx % styles.length]}`;
+            const title = insight.body.includes('TITLE:') ? insight.body.split('TITLE:')[1].split('BODY:')[0].trim() : insight.title;
+            const body = insight.body.includes('BODY:') ? insight.body.split('BODY:')[1].trim() : insight.body;
             card.innerHTML = `
-                <h3>${insightIcons[idx % insightIcons.length]} ${title}</h3>
+                <h3>${icons[idx % icons.length]} ${title}</h3>
                 <p>${body}</p>
             `;
             insightsGrid.appendChild(card);
         });
 
-        // Hypothesis Table
-        const table = document.getElementById('hypothesisTable');
-        let tableHTML = `
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Verdict</th>
-                    <th>Hypothesis</th>
-                    <th>Business Insight</th>
-                </tr>
-            </thead>
-            <tbody>
-        `;
-
+        // Hypothesis Validation Table
+        const hypothesesTable = document.getElementById('hypothesesTable');
         DATA.hypotheses.forEach(hyp => {
+            const tr = document.createElement('tr');
             const verdictClass = hyp.verdict.toLowerCase();
-            tableHTML += `
-                <tr>
-                    <td><strong>${hyp.id}</strong></td>
-                    <td><span class="verdict-badge ${verdictClass}">${hyp.verdict}</span></td>
-                    <td>${hyp.statement}</td>
-                    <td>${hyp.insight}</td>
-                </tr>
+            tr.innerHTML = `
+                <td><strong>${hyp.id}</strong></td>
+                <td><span class="verdict-badge ${verdictClass}">${hyp.verdict}</span></td>
+                <td>${hyp.statement}</td>
+                <td>${hyp.insight}</td>
             `;
+            hypothesesTable.appendChild(tr);
         });
 
-        tableHTML += '</tbody>';
-        table.innerHTML = tableHTML;
-
-        // Category Breakdown Chart
+        // Category Breakdown Chart (if exists)
         if (DATA.cat_breakdown && DATA.cat_breakdown.column) {
-            const catDiv = document.getElementById('categoryBreakdown');
-            const chartCard = document.createElement('div');
-            chartCard.className = 'chart-card';
-            chartCard.style.marginBottom = '2rem';
-            chartCard.innerHTML = `
-                <h2>Late Rate by ${DATA.cat_breakdown.column}</h2>
-                <div class="chart-container">
-                    <canvas id="catBreakdownChart"></canvas>
-                </div>
-            `;
-            catDiv.appendChild(chartCard);
-
-            const catCtx = document.getElementById('catBreakdownChart').getContext('2d');
+            document.getElementById('catBreakdownSection').style.display = 'block';
+            document.getElementById('catBreakdownTitle').textContent = `Late Rate by ${DATA.cat_breakdown.column}`;
             const catLabels = Object.keys(DATA.cat_breakdown.data);
             const catValues = Object.values(DATA.cat_breakdown.data);
-
-            new Chart(catCtx, {
+            const ctxCat = document.getElementById('catBreakdownChart').getContext('2d');
+            new Chart(ctxCat, {
                 type: 'bar',
                 data: {
                     labels: catLabels,
@@ -533,7 +536,9 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: {
+                            display: false
+                        }
                     },
                     scales: {
                         y: {
@@ -541,9 +546,12 @@
                             max: 100,
                             title: {
                                 display: true,
-                                text: 'Late Rate (%)'
+                                text: 'Late Rate (%)',
+                                color: '#94a3b8'
                             },
-                            grid: { color: '#2d3748' },
+                            grid: {
+                                color: '#2d3348'
+                            },
                             ticks: {
                                 callback: function(value) {
                                     return value + '%';
@@ -551,7 +559,9 @@
                             }
                         },
                         x: {
-                            grid: { display: false }
+                            grid: {
+                                display: false
+                            }
                         }
                     }
                 }

@@ -11,10 +11,10 @@
   ],
   "ai_features": [
     "shipping_delay",
-    "scheduled_to_actual_ratio",
-    "sales_per_scheduled_day",
-    "benefit_to_sales_ratio",
-    "aggressive_schedule"
+    "shipping_efficiency",
+    "shipping_time_interaction",
+    "revenue_efficiency",
+    "shipping_pressure"
   ],
   "boruta_selected": [
     "days_for_shipping_real",
@@ -23,14 +23,13 @@
     "feat_sum",
     "feat_product",
     "feat_diff",
-    "log_sales_per_customer",
     "feat_interact",
     "sq_days_for_shipping_real",
     "sq_days_for_shipment_scheduled",
     "shipping_delay",
-    "scheduled_to_actual_ratio",
-    "sales_per_scheduled_day",
-    "aggressive_schedule",
+    "shipping_efficiency",
+    "shipping_time_interaction",
+    "shipping_pressure",
     "type_DEBIT",
     "type_TRANSFER",
     "delivery_status_Late delivery",
@@ -42,6 +41,6 @@
     "shipping_mode_Second Class",
     "shipping_mode_Standard Class"
   ],
-  "ai_code": "\n# 1. Shipping delay feature: difference between actual and scheduled shipping days\n# This directly measures the delay which is highly correlated with late delivery risk\ndf['shipping_delay'] = df['days_for_shipping_real'] - df['days_for_shipment_scheduled']\n\n# 2. Scheduled shipping rate: ratio of scheduled to actual shipping days\n# Values < 1 indicate underestimation (optimistic scheduling), which likely increases late delivery risk\ndf['scheduled_to_actual_ratio'] = df['days_for_shipment_scheduled'] / (df['days_for_shipping_real'] + 0.01)\n\n# 3. Order value per day scheduled: sales intensity metric\n# High value orders scheduled for quick delivery might face more pressure/risk\ndf['sales_per_scheduled_day'] = df['sales_per_customer'] / (df['days_for_shipment_scheduled'] + 1)\n\n# 4. Profitability ratio: benefit relative to sales\n# Unprofitable or low-margin orders might get deprioritized, affecting delivery\ndf['benefit_to_sales_ratio'] = df['benefit_per_order'] / (df['sales_per_customer'] + 1)\n\n# 5. Aggressive scheduling flag: binary indicator for potentially unrealistic schedules\n# If scheduled days <= 2 with high sales, this might indicate risky delivery commitment\ndf['aggressive_schedule'] = ((df['days_for_shipment_scheduled'] <= 2) & (df['sales_per_customer'] > 150)).astype(int)\n",
+  "ai_code": "\n# Feature 1: Shipping delay indicator - difference between actual and scheduled days\ndf['shipping_delay'] = df['days_for_shipping_real'] - df['days_for_shipment_scheduled']\n\n# Feature 2: Shipping schedule efficiency - ratio of scheduled to actual days\ndf['shipping_efficiency'] = df['days_for_shipment_scheduled'] / (df['days_for_shipping_real'] + 0.1)\n\n# Feature 3: Complex non-linear interaction between shipping times\ndf['shipping_time_interaction'] = (df['days_for_shipping_real'] ** 2) / (df['days_for_shipment_scheduled'] + 1)\n\n# Feature 4: Revenue efficiency - benefit per order relative to sales per customer\ndf['revenue_efficiency'] = df['benefit_per_order'] / (df['sales_per_customer'] + 1)\n\n# Feature 5: Shipping pressure indicator - combines delay with absolute shipping time\ndf['shipping_pressure'] = df['shipping_delay'] * df['days_for_shipping_real']\n",
   "ai_success": true
 }

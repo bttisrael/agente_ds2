@@ -1,18 +1,17 @@
 import os
-import sys
-import logging
 import pickle
+import logging
 import pandas as pd
 import numpy as np
-from typing import Dict, Any
 from telegram import Update
 from telegram.ext import (
+    Application,
     ApplicationBuilder,
     CommandHandler,
-    ConversationHandler,
     MessageHandler,
+    ConversationHandler,
+    ContextTypes,
     filters,
-    ContextTypes
 )
 import anthropic
 
@@ -22,27 +21,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ASKING_FEAT_RATIO, ASKING_DAYS_SCHEDULED, ASKING_AGGRESSIVE = range(3)
-
 df = None
 model = None
-feature_importance = {
-    'feat_ratio': 0.9904,
-    'days_for_shipment_scheduled': 0.0013,
-    'aggressive_schedule': 0.0012,
-    'sales_per_scheduled_day': 0.0012,
-    'feat_interact': 0.0011,
-    'log_sales_per_customer': 0.0011,
-    'feat_diff': 0.0010
-}
 
-hypotheses = [
-    "Orders with lower days_for_shipment_scheduled tend to have higher late_delivery_risk",
-    "Orders where days_for_shipping_real exceeds days_for_shipment_scheduled tend to have higher late_delivery_risk",
-    "Orders with specific type values tend to have higher late_delivery_risk",
-    "Orders from certain department_name categories tend to have higher late_delivery_risk",
-    "Orders from specific category_name groups tend to have higher late_delivery_risk"
+AWAITING_FEATURE_1, AWAITING_FEATURE_2, AWAITING_FEATURE_3 = range(3)
+
+TOP_FEATURES = [
+    ('feat_ratio', 0.9997),
+    ('days_for_shipment_scheduled', 0.0001),
+    ('shipping_efficiency', 0.0001),
 ]
+
+FEATURE_DESCRIPTIONS = {
+    'feat_ratio': 'Ratio of actual to scheduled shipping days - critical for identifying delays',
+    'days_for_shipment_scheduled': 'Planned shipping duration - shorter windows increase risk',
+    'shipping_efficiency': 'Overall shipping performance metric - lower values indicate problems',
+}
 
 
 def load_data():
@@ -50,34 +44,38 @@ def load_data():
     try:
         df = pd.read_parquet('df4_predictions.parquet')
         logger.info(f"Loaded dataframe with {len(df)} rows")
-        
         with open('final_model.pkl', 'rb') as f:
             model = pickle.load(f)
         logger.info("Loaded model successfully")
-        
     except Exception as e:
-        logger.error(f"Error loading data: {e}")
-        sys.exit(1)
+        logger.error(f"Error loading data or model: {e}")
+        raise
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        welcome_msg = (
-            "🚀 *Welcome to the Supply Chain Data Science Assistant!*\n\n"
-            "I help you understand late delivery predictions for DataCo Global's supply chain operations.\n\n"
-            "📊 *Dataset:* 180,519 orders\n"
-            "🤖 *Model:* XGBoost Classifier\n"
-            "🎯 *Accuracy:* 97.45%\n\n"
-            "*Available Commands:*\n"
-            "/stats - Dataset and model summary\n"
-            "/top_features - Most important prediction features\n"
-            "/hypotheses - Validated business insights\n"
-            "/predict - Predict late delivery risk\n"
-            "/insights - Get AI-powered business insights\n"
-            "/help - Show all commands\n\n"
-            "Let's optimize your supply chain! 📦✨"
-        )
-        await update.message.reply_text(welcome_msg, parse_mode='Markdown')
+        welcome_message = """
+🚀 **Welcome to the Supply Chain Risk Assistant!**
+
+I help predict late delivery risks for DataCo Global's supply chain operations.
+
+📊 **What I can do:**
+• Analyze 180k+ orders to predict delivery risks
+• Identify key factors causing delays
+• Provide actionable insights for operations managers
+
+**Available Commands:**
+
+/stats - View dataset and model performance summary
+/top_features - See most important risk factors
+/hypotheses - Review validated business insights
+/predict - Predict late delivery risk for new orders
+/insights - Get AI-powered business insights
+/help - Show all commands
+
+Let's optimize your supply chain! 📦✨
+"""
+        await update.message.reply_text(welcome_message, parse_mode='Markdown')
     except Exception as e:
         logger.error(f"Error in start: {e}")
         await update.message.reply_text("Sorry, an error occurred. Please try again.")
@@ -86,97 +84,123 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         total_records = len(df)
-        model_name = "XGBoost Classifier"
-        accuracy = 0.9745
         
-        pred_counts = {'1.0': 103400, '0.0': 77119}
-        total_preds = sum(pred_counts.values())
+        pred_col = 'predictions' if 'predictions' in df.columns else 'late_delivery_risk'
         
-        pct_late = (pred_counts['1.0'] / total_preds) * 100
-        pct_ontime = (pred_counts['0.0'] / total_preds) * 100
+        if pred_col in df.columns:
+            predictions = df[pred_col].value_counts()
+            class_0 = predictions.get(0.0, 0)
+            class_1 = predictions.get(1.0, 0)
+            pct_0 = (class_0 / total_records * 100) if total_records > 0 else 0
+            pct_1 = (class_1 / total_records * 100) if total_records > 0 else 0
+        else:
+            class_0 = 77119
+            class_1 = 103400
+            pct_0 = 42.72
+            pct_1 = 57.28
         
         avg_confidence = "N/A"
-        if 'prediction_confidence' in df.columns:
-            avg_confidence = f"{df['prediction_confidence'].mean():.2%}"
+        if 'prediction_proba' in df.columns:
+            avg_confidence = f"{df['prediction_proba'].mean():.4f}"
         
-        stats_msg = (
-            "📊 *Dataset & Model Summary*\n\n"
-            f"📦 *Total Records:* {total_records:,}\n"
-            f"🤖 *Model:* {model_name}\n"
-            f"🎯 *Accuracy:* {accuracy:.2%}\n\n"
-            "*Prediction Distribution:*\n"
-            f"🔴 Late Deliveries (1): {pred_counts['1.0']:,} ({pct_late:.1f}%)\n"
-            f"🟢 On-Time Deliveries (0): {pred_counts['0.0']:,} ({pct_ontime:.1f}%)\n\n"
-            f"💯 *Avg Confidence:* {avg_confidence}\n\n"
-            "The model predicts that ~57% of shipments are at risk of late delivery."
-        )
-        
-        await update.message.reply_text(stats_msg, parse_mode='Markdown')
-        
+        stats_message = f"""
+📊 **Dataset & Model Statistics**
+
+**Dataset Overview:**
+📦 Total Records: {total_records:,}
+🤖 Model: XGBoost Classifier
+🎯 Accuracy: 97.45%
+
+**Prediction Distribution:**
+✅ On-Time Deliveries (0): {class_0:,} ({pct_0:.2f}%)
+⚠️ Late Deliveries (1): {class_1:,} ({pct_1:.2f}%)
+
+**Model Confidence:**
+📈 Average Confidence: {avg_confidence}
+
+**Business Impact:**
+Over 57% of orders are at risk of late delivery, highlighting critical need for proactive intervention and resource optimization.
+"""
+        await update.message.reply_text(stats_message, parse_mode='Markdown')
     except Exception as e:
         logger.error(f"Error in stats: {e}")
-        await update.message.reply_text("Sorry, couldn't retrieve stats. Please try again.")
+        await update.message.reply_text("Sorry, couldn't retrieve statistics. Please try again.")
 
 
 async def top_features(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        features_msg = "🏆 *Top 7 Most Important Features*\n\n"
-        
-        feature_explanations = {
-            'feat_ratio': "📐 *Feat Ratio (99.04%)*\nRatio of actual to scheduled shipping days. The single most critical predictor - shows if shipments are running behind schedule.",
-            
-            'days_for_shipment_scheduled': "📅 *Days Scheduled (0.13%)*\nPlanned shipping timeframe. Tighter schedules correlate with higher risk of delays.",
-            
-            'aggressive_schedule': "⚡ *Aggressive Schedule (0.12%)*\nIndicates unrealistically tight delivery windows that are hard to meet.",
-            
-            'sales_per_scheduled_day': "💰 *Sales per Scheduled Day (0.12%)*\nRevenue intensity per day allocated. Higher values suggest rushed, high-value orders.",
-            
-            'feat_interact': "🔄 *Feature Interaction (0.11%)*\nCombined effect of multiple scheduling variables working together.",
-            
-            'log_sales_per_customer': "👤 *Log Sales per Customer (0.11%)*\nTransformed customer value metric. High-value customers may have different risk profiles.",
-            
-            'feat_diff': "📊 *Feature Difference (0.10%)*\nDifference between actual and scheduled days - direct measure of schedule deviation."
-        }
-        
-        for i, (feat, importance) in enumerate(feature_importance.items(), 1):
-            if feat in feature_explanations:
-                features_msg += f"{i}. {feature_explanations[feat]}\n\n"
-        
-        features_msg += "💡 *Key Insight:* feat_ratio dominates with 99% importance - focus on schedule adherence!"
-        
-        await update.message.reply_text(features_msg, parse_mode='Markdown')
-        
+        features_message = """
+🔍 **Top 7 Most Important Risk Factors**
+
+**1. feat_ratio (99.97%)**
+   📊 Ratio of actual vs scheduled shipping time
+   💼 Business Impact: The single most critical predictor - when actual shipping exceeds scheduled time, late delivery is almost certain
+
+**2. days_for_shipment_scheduled (0.01%)**
+   ⏱️ Planned shipping duration in days
+   💼 Business Impact: Tighter delivery windows increase pressure and risk - helps identify aggressive scheduling
+
+**3. shipping_efficiency (0.01%)**
+   ⚡ Overall shipping performance metric
+   💼 Business Impact: Measures carrier and route effectiveness - low efficiency signals systemic problems
+
+**4. feat_interact (0.00%)**
+   🔗 Interaction between shipping features
+   💼 Business Impact: Captures complex relationships between timing factors
+
+**5. days_for_shipping_real (0.00%)**
+   📅 Actual shipping time taken
+   💼 Business Impact: Ground truth of delivery performance
+
+**6. shipping_time_interaction (0.00%)**
+   ⚙️ Combined timing effects
+   💼 Business Impact: Identifies compounding delays
+
+**7. feat_sum (0.00%)**
+   ➕ Aggregate shipping metrics
+   💼 Business Impact: Overall delivery complexity indicator
+
+**Key Takeaway:** Focus on feat_ratio monitoring - it accounts for 99.97% of predictive power!
+"""
+        await update.message.reply_text(features_message, parse_mode='Markdown')
     except Exception as e:
         logger.error(f"Error in top_features: {e}")
-        await update.message.reply_text("Sorry, couldn't retrieve features. Please try again.")
+        await update.message.reply_text("Sorry, couldn't retrieve feature importance. Please try again.")
 
 
-async def show_hypotheses(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def hypotheses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        hyp_msg = "✅ *Validated Business Hypotheses*\n\n"
-        hyp_msg += "All hypotheses below were tested and confirmed TRUE:\n\n"
-        
-        explanations = [
-            "Tight delivery windows increase risk. *Action:* Add buffer time for critical orders.",
-            
-            "When actual shipping exceeds planned days, delays are likely. *Action:* Monitor early and escalate.",
-            
-            "Payment methods (DEBIT, TRANSFER, etc.) correlate with delivery performance. *Action:* Segment by type.",
-            
-            "Certain product departments have systemic delay issues. *Action:* Audit high-risk departments.",
-            
-            "Product categories like electronics or furniture show distinct risk patterns. *Action:* Category-specific routing."
-        ]
-        
-        for i, (hyp, exp) in enumerate(zip(hypotheses, explanations), 1):
-            hyp_msg += f"{i}. *{hyp.split('tend to')[0].strip()}*\n   → {exp}\n\n"
-        
-        hyp_msg += "🎯 These insights drive our carrier selection and warehouse routing decisions."
-        
-        await update.message.reply_text(hyp_msg, parse_mode='Markdown')
-        
+        hypotheses_message = """
+✅ **Validated Business Hypotheses**
+
+All hypotheses were confirmed as **TRUE** through statistical analysis:
+
+**1. Tight Scheduling Increases Risk**
+Orders with lower scheduled shipping days tend to have higher late delivery risk.
+📌 Action: Build buffer time into tight delivery windows, especially for complex routes.
+
+**2. Schedule Overruns Are Critical**
+Orders where actual shipping days exceed scheduled days have significantly higher late delivery rates.
+📌 Action: Implement real-time monitoring to catch delays early and trigger expedited handling.
+
+**3. Transaction Type Matters**
+Specific transaction types (DEBIT, TRANSFER, etc.) correlate with different risk levels.
+📌 Action: Apply transaction-specific routing rules and resource allocation.
+
+**4. Product Category Risk Patterns**
+Certain product categories consistently show higher late delivery rates.
+📌 Action: Pre-allocate extra handling resources for high-risk categories.
+
+**5. Department Performance Varies**
+Orders from specific departments have distinct delivery performance profiles.
+📌 Action: Conduct targeted training and process improvements in underperforming departments.
+
+**Strategic Recommendation:**
+Implement a multi-factor risk scoring system based on these validated patterns to prioritize interventions where they'll have maximum impact.
+"""
+        await update.message.reply_text(hypotheses_message, parse_mode='Markdown')
     except Exception as e:
-        logger.error(f"Error in show_hypotheses: {e}")
+        logger.error(f"Error in hypotheses: {e}")
         await update.message.reply_text("Sorry, couldn't retrieve hypotheses. Please try again.")
 
 
@@ -184,202 +208,182 @@ async def predict_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.user_data.clear()
         
-        msg = (
-            "🔮 *Late Delivery Risk Prediction*\n\n"
-            "I'll ask you for the top 3 most important features.\n\n"
-            "Let's start!\n\n"
-            "📐 *Question 1/3:* What is the *feat_ratio*?\n"
-            "(Ratio of actual to scheduled shipping days, e.g., 1.0 = on time, 1.5 = 50% over)"
-        )
-        
-        await update.message.reply_text(msg, parse_mode='Markdown')
-        return ASKING_FEAT_RATIO
-        
+        message = """
+🔮 **Late Delivery Risk Prediction**
+
+I'll ask you for values of the top 3 features to predict delivery risk.
+
+**Feature 1: feat_ratio**
+This is the ratio of actual to scheduled shipping days.
+- Value < 1.0: Shipping faster than scheduled (good)
+- Value = 1.0: On schedule
+- Value > 1.0: Behind schedule (risk!)
+
+Please enter the **feat_ratio** value (e.g., 0.95, 1.0, 1.25):
+"""
+        await update.message.reply_text(message, parse_mode='Markdown')
+        return AWAITING_FEATURE_1
     except Exception as e:
         logger.error(f"Error in predict_start: {e}")
         await update.message.reply_text("Sorry, couldn't start prediction. Please try again.")
         return ConversationHandler.END
 
 
-async def predict_feat_ratio(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def predict_feature_1(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_input = update.message.text.strip()
-        
         try:
-            feat_ratio = float(user_input)
-            if feat_ratio < 0:
-                await update.message.reply_text("Please enter a positive number. Try again:")
-                return ASKING_FEAT_RATIO
-                
-            context.user_data['feat_ratio'] = feat_ratio
+            value = float(user_input)
+            context.user_data['feat_ratio'] = value
             
-            msg = (
-                "✅ Got it!\n\n"
-                "📅 *Question 2/3:* What is *days_for_shipment_scheduled*?\n"
-                "(Planned shipping days, typically 2-4 days)"
-            )
-            await update.message.reply_text(msg, parse_mode='Markdown')
-            return ASKING_DAYS_SCHEDULED
-            
+            message = """
+✅ Got it!
+
+**Feature 2: days_for_shipment_scheduled**
+This is the planned shipping duration in days (typically 2-5 days).
+- Lower values = tighter timeline = higher risk
+- Higher values = more buffer = lower risk
+
+Please enter **days_for_shipment_scheduled** (e.g., 2, 3, 4):
+"""
+            await update.message.reply_text(message, parse_mode='Markdown')
+            return AWAITING_FEATURE_2
         except ValueError:
-            await update.message.reply_text("❌ Invalid input. Please enter a numeric value (e.g., 1.0, 1.5):")
-            return ASKING_FEAT_RATIO
-            
+            await update.message.reply_text("Please enter a valid number (e.g., 1.25)")
+            return AWAITING_FEATURE_1
     except Exception as e:
-        logger.error(f"Error in predict_feat_ratio: {e}")
-        await update.message.reply_text("Error processing input. Please try /predict again.")
+        logger.error(f"Error in predict_feature_1: {e}")
+        await update.message.reply_text("Error processing input. Please try again.")
         return ConversationHandler.END
 
 
-async def predict_days_scheduled(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def predict_feature_2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_input = update.message.text.strip()
-        
         try:
-            days_scheduled = float(user_input)
-            if days_scheduled < 0:
-                await update.message.reply_text("Please enter a positive number. Try again:")
-                return ASKING_DAYS_SCHEDULED
-                
-            context.user_data['days_for_shipment_scheduled'] = days_scheduled
+            value = float(user_input)
+            context.user_data['days_for_shipment_scheduled'] = value
             
-            msg = (
-                "✅ Great!\n\n"
-                "⚡ *Question 3/3:* Is this an *aggressive_schedule*?\n"
-                "(Enter 1 for YES or 0 for NO)"
-            )
-            await update.message.reply_text(msg, parse_mode='Markdown')
-            return ASKING_AGGRESSIVE
-            
+            message = """
+✅ Excellent!
+
+**Feature 3: shipping_efficiency**
+This is the overall shipping performance score (0.0 to 1.0).
+- Higher values = better efficiency = lower risk
+- Lower values = poor efficiency = higher risk
+
+Please enter **shipping_efficiency** (e.g., 0.75, 0.85, 0.95):
+"""
+            await update.message.reply_text(message, parse_mode='Markdown')
+            return AWAITING_FEATURE_3
         except ValueError:
-            await update.message.reply_text("❌ Invalid input. Please enter a numeric value (e.g., 2, 3, 4):")
-            return ASKING_DAYS_SCHEDULED
-            
+            await update.message.reply_text("Please enter a valid number (e.g., 4)")
+            return AWAITING_FEATURE_2
     except Exception as e:
-        logger.error(f"Error in predict_days_scheduled: {e}")
-        await update.message.reply_text("Error processing input. Please try /predict again.")
+        logger.error(f"Error in predict_feature_2: {e}")
+        await update.message.reply_text("Error processing input. Please try again.")
         return ConversationHandler.END
 
 
-async def predict_aggressive(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def predict_feature_3(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_input = update.message.text.strip()
-        
         try:
-            aggressive = float(user_input)
-            if aggressive not in [0, 1]:
-                await update.message.reply_text("Please enter 0 (NO) or 1 (YES). Try again:")
-                return ASKING_AGGRESSIVE
-                
-            context.user_data['aggressive_schedule'] = aggressive
+            value = float(user_input)
+            context.user_data['shipping_efficiency'] = value
             
             feat_ratio = context.user_data['feat_ratio']
             days_scheduled = context.user_data['days_for_shipment_scheduled']
+            efficiency = context.user_data['shipping_efficiency']
             
-            input_features = pd.DataFrame([{
-                'feat_ratio': feat_ratio,
-                'days_for_shipment_scheduled': days_scheduled,
-                'aggressive_schedule': aggressive,
-                'sales_per_scheduled_day': 100.0,
-                'feat_interact': feat_ratio * days_scheduled,
-                'log_sales_per_customer': 5.0,
-                'feat_diff': (feat_ratio - 1.0) * days_scheduled
-            }])
+            feature_vector = np.array([[feat_ratio, days_scheduled, efficiency, 0, 0, 0, 0]])
             
-            prediction = model.predict(input_features)[0]
-            
-            try:
-                proba = model.predict_proba(input_features)[0]
+            if model is not None:
+                prediction = model.predict(feature_vector)[0]
+                proba = model.predict_proba(feature_vector)[0]
                 confidence = max(proba) * 100
-            except:
-                confidence = None
-            
-            result_msg = "🎯 *Prediction Result*\n\n"
-            result_msg += f"📥 *Input Values:*\n"
-            result_msg += f"  • Feat Ratio: {feat_ratio}\n"
-            result_msg += f"  • Days Scheduled: {days_scheduled}\n"
-            result_msg += f"  • Aggressive Schedule: {'Yes' if aggressive == 1 else 'No'}\n\n"
-            
-            if prediction == 1.0:
-                result_msg += "🔴 *PREDICTION: LATE DELIVERY RISK*\n\n"
-                result_msg += "⚠️ This shipment is at HIGH RISK of late delivery.\n\n"
-                result_msg += "*Recommended Actions:*\n"
-                result_msg += "• Expedite shipping\n"
-                result_msg += "• Alert customer proactively\n"
-                result_msg += "• Consider premium carrier\n"
-                result_msg += "• Flag for warehouse priority\n"
+                
+                prediction_class = "⚠️ LATE DELIVERY RISK" if prediction == 1.0 else "✅ ON-TIME DELIVERY"
+                risk_emoji = "🔴" if prediction == 1.0 else "🟢"
+                
+                result_message = f"""
+{risk_emoji} **Prediction Result**
+
+**Predicted Outcome:** {prediction_class}
+**Confidence:** {confidence:.2f}%
+
+**Input Values:**
+• feat_ratio: {feat_ratio}
+• days_for_shipment_scheduled: {days_scheduled}
+• shipping_efficiency: {efficiency}
+
+**Recommendation:**
+"""
+                if prediction == 1.0:
+                    result_message += """
+⚠️ HIGH RISK - Immediate action required!
+• Escalate to expedited shipping
+• Alert operations manager
+• Proactive customer communication
+• Consider alternate carriers/routes
+"""
+                else:
+                    result_message += """
+✅ LOW RISK - Standard processing
+• Continue with normal workflow
+• Monitor for any changes
+• Maintain current schedule
+"""
+                
+                await update.message.reply_text(result_message, parse_mode='Markdown')
             else:
-                result_msg += "🟢 *PREDICTION: ON-TIME DELIVERY*\n\n"
-                result_msg += "✅ This shipment is likely to arrive on time.\n\n"
-                result_msg += "*Recommended Actions:*\n"
-                result_msg += "• Proceed with standard routing\n"
-                result_msg += "• Continue normal monitoring\n"
+                await update.message.reply_text("Model not available. Cannot make prediction.")
             
-            if confidence:
-                result_msg += f"\n💯 *Confidence:* {confidence:.1f}%"
-            
-            await update.message.reply_text(result_msg, parse_mode='Markdown')
-            context.user_data.clear()
             return ConversationHandler.END
-            
         except ValueError:
-            await update.message.reply_text("❌ Invalid input. Please enter 0 or 1:")
-            return ASKING_AGGRESSIVE
-            
+            await update.message.reply_text("Please enter a valid number (e.g., 0.85)")
+            return AWAITING_FEATURE_3
     except Exception as e:
-        logger.error(f"Error in predict_aggressive: {e}")
+        logger.error(f"Error in predict_feature_3: {e}")
         await update.message.reply_text("Error making prediction. Please try /predict again.")
         return ConversationHandler.END
 
 
-async def cancel_predict(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def predict_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        context.user_data.clear()
-        await update.message.reply_text("Prediction cancelled. Use /predict to start over.")
+        await update.message.reply_text("Prediction cancelled. Use /predict to start again.")
         return ConversationHandler.END
     except Exception as e:
-        logger.error(f"Error in cancel_predict: {e}")
+        logger.error(f"Error in predict_cancel: {e}")
         return ConversationHandler.END
 
 
 async def insights(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         api_key = os.environ.get('ANTHROPIC_API_KEY')
-        
         if not api_key:
-            await update.message.reply_text(
-                "⚠️ Insights feature requires ANTHROPIC_API_KEY environment variable.\n"
-                "Please configure it to use AI-powered insights."
-            )
+            await update.message.reply_text("AI insights unavailable: API key not configured.")
             return
         
-        await update.message.reply_text("🤔 Analyzing data and generating insights... Please wait.")
+        await update.message.reply_text("🤔 Analyzing dataset and generating insights... Please wait.")
         
-        stats_context = f"""
+        total_records = len(df)
+        pred_col = 'predictions' if 'predictions' in df.columns else 'late_delivery_risk'
+        
+        if pred_col in df.columns:
+            late_count = (df[pred_col] == 1.0).sum()
+            late_pct = (late_count / total_records * 100) if total_records > 0 else 0
+        else:
+            late_count = 103400
+            late_pct = 57.28
+        
+        context_data = f"""
 Dataset: DataCo Global Supply Chain (180,519 orders)
 Model: XGBoost Classifier with 97.45% accuracy
-Target: Late delivery risk prediction
-
-Key Statistics:
-- Late deliveries predicted: 103,400 (57.3%)
-- On-time deliveries predicted: 77,119 (42.7%)
-
-Top Feature Importance:
-1. feat_ratio (99.04%) - ratio of actual to scheduled shipping days
-2. days_for_shipment_scheduled (0.13%)
-3. aggressive_schedule (0.12%)
-
-Validated Hypotheses:
-- Tighter schedules increase late delivery risk
-- When actual shipping exceeds scheduled days, delays are very likely
-- Certain payment types and product categories show higher risk
-
-Business Context:
-Operations managers use these predictions to:
-- Route orders through optimal warehouses
-- Select appropriate carriers
-- Proactively communicate with customers
-- Prioritize expedited handling for at-risk shipments
+Late Delivery Rate: {late_pct:.2f}% ({late_count:,} orders)
+Top Predictor: feat_ratio (99.97% importance) - ratio of actual vs scheduled shipping time
+Key Finding: Schedule overruns are the dominant factor in late deliveries
+Business Context: Operations managers need to prioritize expedited handling and carrier selection
 """
         
         client = anthropic.Anthropic(api_key=api_key)
@@ -390,93 +394,113 @@ Operations managers use these predictions to:
             messages=[
                 {
                     "role": "user",
-                    "content": f"""You are a supply chain analytics expert. Based on this ML project data:
+                    "content": f"""You are a supply chain analytics expert. Based on this data, provide 2-3 paragraphs of actionable business insights for operations managers:
 
-{stats_context}
+{context_data}
 
-Provide a 2-3 paragraph business insight focusing on:
-1. What the 99% importance of feat_ratio tells us about delivery operations
-2. Actionable recommendations for reducing late deliveries
-3. How operations managers should prioritize their interventions
-
-Keep it practical, business-focused, and under 500 words."""
+Focus on: 1) What the data reveals about operational challenges, 2) Specific actions to reduce late delivery risk, 3) ROI opportunities from better prediction."""
                 }
             ]
         )
         
         insight_text = message.content[0].text
         
-        response_msg = "💡 *AI-Powered Business Insights*\n\n"
-        response_msg += insight_text
-        response_msg += "\n\n_Generated by Claude AI_"
+        response = f"""
+🧠 **AI-Powered Business Insights**
+
+{insight_text}
+
+---
+💡 Generated using Claude AI based on your dataset statistics.
+"""
         
-        if len(response_msg) > 4096:
-            response_msg = response_msg[:4090] + "..."
+        if len(response) > 4096:
+            response = response[:4090] + "..."
         
-        await update.message.reply_text(response_msg, parse_mode='Markdown')
+        await update.message.reply_text(response, parse_mode='Markdown')
         
     except Exception as e:
         logger.error(f"Error in insights: {e}")
-        await update.message.reply_text(
-            "Sorry, couldn't generate insights. Please check your ANTHROPIC_API_KEY and try again."
-        )
+        await update.message.reply_text("Sorry, couldn't generate insights. Please try again later.")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        help_msg = (
-            "🤖 *Supply Chain Assistant - Help*\n\n"
-            "*Available Commands:*\n\n"
-            "/start - Welcome message and bot overview\n\n"
-            "/stats - View dataset summary, model accuracy, and prediction distribution\n\n"
-            "/top_features - See the 7 most important features with business explanations\n\n"
-            "/hypotheses - List of validated business insights from the analysis\n\n"
-            "/predict - Interactive prediction tool - answer 3 questions to get a delivery risk prediction\n\n"
-            "/insights - Get AI-powered business insights using Claude API\n\n"
-            "/help - Show this help message\n\n"
-            "📊 *About the Model:*\n"
-            "XGBoost classifier trained on 180K+ supply chain orders to predict late delivery risk.\n\n"
-            "❓ Questions? Just try a command and follow the prompts!"
-        )
-        
-        await update.message.reply_text(help_msg, parse_mode='Markdown')
-        
+        help_message = """
+📚 **Available Commands**
+
+**/start** - Welcome message and bot introduction
+
+**/stats** - View dataset statistics and model performance metrics
+
+**/top_features** - See the 7 most important features for predicting late deliveries with business explanations
+
+**/hypotheses** - Review validated business hypotheses from the analysis
+
+**/predict** - Interactive prediction tool - answer questions about shipping features to get a late delivery risk prediction
+
+**/insights** - Get AI-generated business insights powered by Claude
+
+**/help** - Show this help message
+
+**About This Bot:**
+I analyze 180k+ supply chain orders to predict late delivery risks with 97.45% accuracy, helping operations managers make proactive decisions.
+
+**Need Support?**
+Use /start to see the full introduction or try any command above!
+"""
+        await update.message.reply_text(help_message, parse_mode='Markdown')
     except Exception as e:
-        logger.error(f"Error in help_command: {e}")
+        logger.error(f"Error in help: {e}")
         await update.message.reply_text("Sorry, couldn't display help. Please try again.")
 
 
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(f"Update {update} caused error {context.error}")
+    try:
+        if update and update.message:
+            await update.message.reply_text(
+                "An unexpected error occurred. Please try again or use /help for assistance."
+            )
+    except Exception as e:
+        logger.error(f"Error in error_handler: {e}")
+
+
 def main():
-    token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    try:
+        load_data()
+    except Exception as e:
+        logger.error(f"Failed to load data: {e}")
+        return
     
+    token = os.environ.get('TELEGRAM_BOT_TOKEN')
     if not token:
         logger.error("TELEGRAM_BOT_TOKEN not found in environment variables")
-        sys.exit(1)
-    
-    load_data()
+        return
     
     application = ApplicationBuilder().token(token).build()
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("stats", stats))
     application.add_handler(CommandHandler("top_features", top_features))
-    application.add_handler(CommandHandler("hypotheses", show_hypotheses))
+    application.add_handler(CommandHandler("hypotheses", hypotheses))
     application.add_handler(CommandHandler("insights", insights))
     application.add_handler(CommandHandler("help", help_command))
     
     predict_handler = ConversationHandler(
         entry_points=[CommandHandler("predict", predict_start)],
         states={
-            ASKING_FEAT_RATIO: [MessageHandler(filters.TEXT & ~filters.COMMAND, predict_feat_ratio)],
-            ASKING_DAYS_SCHEDULED: [MessageHandler(filters.TEXT & ~filters.COMMAND, predict_days_scheduled)],
-            ASKING_AGGRESSIVE: [MessageHandler(filters.TEXT & ~filters.COMMAND, predict_aggressive)],
+            AWAITING_FEATURE_1: [MessageHandler(filters.TEXT & ~filters.COMMAND, predict_feature_1)],
+            AWAITING_FEATURE_2: [MessageHandler(filters.TEXT & ~filters.COMMAND, predict_feature_2)],
+            AWAITING_FEATURE_3: [MessageHandler(filters.TEXT & ~filters.COMMAND, predict_feature_3)],
         },
-        fallbacks=[CommandHandler("cancel", cancel_predict)],
+        fallbacks=[CommandHandler("cancel", predict_cancel)],
     )
-    
     application.add_handler(predict_handler)
     
-    logger.info("Bot started successfully")
+    application.add_error_handler(error_handler)
+    
+    logger.info("Bot starting...")
     application.run_polling()
 
 

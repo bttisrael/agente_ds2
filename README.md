@@ -93,6 +93,25 @@ Kaggle Dataset
                                     │ (predictions +   │    │  (.ipynb, GitHub │
                                     │  Telegram bot)   │    │   renders)       │
                                     └──────────────────┘    └──────────────────┘
+                                                                      │
+                                                                      ▼
+                                                            ┌──────────────────┐
+                                                            │   BI Dashboard   │
+                                                            │ (HTML+Chart.js + │
+                                                            │  AI narratives)  │
+                                                            └──────────────────┘
+                                                                      │ paramiko SSH
+                                                                      ▼
+                                                            ┌──────────────────┐
+                                                            │  Cloud Deployer  │
+                                                            │ (SFTP upload +   │
+                                                            │  git pull +      │
+                                                            │  systemd restart)│
+                                                            └──────────────────┘
+                                                                      │
+                                                                      ▼
+                                                            Oracle Cloud VM
+                                                            (bot live 24/7 ☁️)
 ```
 
 ### What Claude Does Inside Each Tool
